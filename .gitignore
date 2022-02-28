@@ -1,0 +1,17 @@
+*.mli~
+*.ml~
+*.aux
+*.glob
+*.vo
+*.vok
+*.vos
+*.o
+*.cmi
+*.cmx
+*.cmxs
+*.d
+*.a
+*.cmxa
+Makefile.coq
+Makefile.coq.conf
+src/g_tuto*.ml
