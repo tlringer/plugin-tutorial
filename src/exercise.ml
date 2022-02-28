@@ -11,7 +11,7 @@ open Termutils
  * but if you find it confusing, please ask for help.
  *)
 let rec count env src trm sigma =
-  let sigma, is_eq = Termutils.equal env src trm sigma in
+  let sigma, is_eq = equal env src trm sigma in
   if is_eq then
     sigma, 1
   else
@@ -49,7 +49,7 @@ let rec count env src trm sigma =
  * structure.
  *)
 let sub env (src, dst) trm sigma = (*<- you'll need to add "rec" before "sub"*)
-  let sigma, is_eq = Termutils.equal env src trm sigma in
+  let sigma, is_eq = equal env src trm sigma in
   if is_eq then
     sigma, trm (* <- your implementation here *)
   else
