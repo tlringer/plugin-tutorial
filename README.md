@@ -1,4 +1,4 @@
-This is a fun plugin tutorial for my Proof Automation class!
+This is a fun plugin tutorial for my [Proof Automation](https://dependenttyp.es/classes/598sp2022.html) class! The relevant class information is [here](https://dependenttyp.es/classes/artifacts/14-mixed.html).
 
 This tutorial helps familiarize people with plugin development. The goal
 is to implement a command with this syntax:
