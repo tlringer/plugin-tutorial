@@ -146,4 +146,9 @@ END
  * BONUS 2: Extend your command to unfold constants.
  * The function lookup_definition from the same file linked to above may
  * help, though it is a bit out of date.
+ *
+ * BONUS 3: Notice how both "count" and "sub" have similar structure.
+ * Factor that structure out into a fold over the structure of the AST,
+ * and use it inside of both "count" and "sub". This will be useful for
+ * other commands and tactics you might want to implement in the future!
  *)
