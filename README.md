@@ -8,7 +8,7 @@ Sub src1 src2 ... srcn with dst1 dst2 ... dstn in trm as name.
 ```
 
 This command substitutes each subterm of `trm` that is definitionally equal to `srci`
-with the corresponding term `desti`. Some tests in [./theories/Demo.v](Demo.v) that pass
+with the corresponding term `desti`. Some tests in [Demo.v](./theories/Demo.v) that pass
 after implementing `Sub` correctly:
 
 ```
