@@ -27,7 +27,7 @@ let rec count env src trm sigma =
     | Constr.App (f, args) -> (* f args *)
        let sigma, count_f = count env src f sigma in
        let sigma, count_args =
-         Termutils.map_state_array
+         map_state_array
            (count env src)
            args
            sigma
