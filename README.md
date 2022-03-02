@@ -85,7 +85,7 @@ eval $(opam env)
 Add this line to your .emacs to configure emacs to use those development tools:
 
 ```
-add-to-list 'auto-mode-alist '("\\.mlg$" . tuareg-mode) t)
+(add-to-list 'auto-mode-alist '("\\.mlg$"      . tuareg-mode) t)
 ```
 
 Build the plugin:
