@@ -56,7 +56,7 @@ let sub env (src, dst) trm sigma = (*<- you'll need to add "rec" before "sub"*)
     match kind sigma trm with
     | Constr.Lambda (n, t, b) -> (* fun (n : t) => b *)
        sigma, trm (* <- your implementation here *)
-    | Constr.Prod (n, t, b) -> (* prod (n : t) => b *)
+    | Constr.Prod (n, t, b) -> (* forall (n : t), b *)
        sigma, trm (* <- your implementation here *)
     | Constr.App (f, args) -> (* f args *)
        sigma, trm (* <- your implementation here *)
