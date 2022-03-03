@@ -95,8 +95,8 @@ END
  * Please check out Demo.v before starting this so that you can get a better
  * idea of what this is supposed to do.
  *
- * EXERCISE 5: Implement sub in exercise.ml. When you are done, the Sub
- * command should behave as expected in Demo.v.
+ * EXERCISE 5: Implement sub in exercise.ml. When you are done, run `make`, and then
+ * reopen `Demo.v`. The Sub command should behave as expected in Demo.v.
  *)
 VERNAC COMMAND EXTEND Sub CLASSIFIED AS SIDEFF
 | [ "Sub" constr_list(src_es) "with" constr_list(dst_es) "in"
