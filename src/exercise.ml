@@ -48,17 +48,27 @@ let rec count env src trm sigma =
  * instead of a number. The function will have almost exactly the same
  * structure.
  *)
-let sub env (src, dst) trm sigma = (*<- you'll need to add "rec" before "sub"*)
+let rec sub env (src, dst) trm sigma =
   let sigma, is_eq = equal env src trm sigma in
   if is_eq then
-    sigma, trm (* <- your implementation here *)
+    sigma, dst
   else
     match kind sigma trm with
     | Constr.Lambda (n, t, b) -> (* fun (n : t) => b *)
-       sigma, trm (* <- your implementation here *)
+       let sigma, sub_t = sub env (src, dst) t sigma in
+       let sigma, sub_b = sub (push_local (n, t) env) (src, dst) b sigma in
+       sigma, mkLambda (n, sub_t, sub_b)
     | Constr.Prod (n, t, b) -> (* prod (n : t) => b *)
-       sigma, trm (* <- your implementation here *)
+       let sigma, sub_t = sub env (src, dst) t sigma in
+       let sigma, sub_b = sub (push_local (n, t) env) (src, dst) b sigma in
+       sigma, mkProd (n, sub_t, sub_b)
     | Constr.App (f, args) -> (* f args *)
-       sigma, trm (* <- your implementation here *)
+       let sigma, sub_f = sub env (src, dst) f sigma in
+       let sigma, sub_args =
+         map_state_array
+           (sub env (src, dst))
+           args
+           sigma
+       in sigma, mkApp (sub_f, sub_args)
     | _ ->
        sigma, trm
