@@ -36,9 +36,9 @@ open Exercise
 VERNAC COMMAND EXTEND MyDefine CLASSIFIED AS SIDEFF
 | [ "MyDefine" ident(i) ":=" constr(e) ] ->
    {
-     let sigma, env = global_env () in
-     let sigma, trm = internalize env e sigma in
-     define i trm sigma
+     let sigma, env = global_env () in (* get global state and environment *)
+     let sigma, trm = internalize env e sigma in (* convert input term to internal representation *)
+     define i trm sigma (* map input identifier to input term in the global environment *) 
    }
 END
 
@@ -74,11 +74,11 @@ END
 VERNAC COMMAND EXTEND Count CLASSIFIED AS SIDEFF
 | [ "Count" constr(src_e) "in" constr(e) ] ->
    {
-     let sigma, env = global_env () in
-     let sigma, src = internalize env src_e sigma in
-     let sigma, trm = internalize env e sigma in
-     let sigma, count = count env src trm sigma in
-     Feedback.msg_notice (strbrk (string_of_int count))
+     let sigma, env = global_env () in (* get global state and environment *)
+     let sigma, src = internalize env src_e sigma in (* convert to internal representation *)
+     let sigma, trm = internalize env e sigma in (* convert to internal representation *)
+     let sigma, count = count env src trm sigma in (* count occurrences of src in trm *)
+     Feedback.msg_notice (strbrk (string_of_int count)) (* print the result *)
    }
 END
 

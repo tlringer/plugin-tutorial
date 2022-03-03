@@ -13,18 +13,22 @@ open Termutils
 let rec count env src trm sigma =
   let sigma, is_eq = equal env src trm sigma in
   if is_eq then
+    (* when src is equal to trm, up the count *)
     sigma, 1
   else
     match kind sigma trm with
-    | Constr.Lambda (n, t, b) -> (* fun (n : t) => b *)
+    | Constr.Lambda (n, t, b) ->
+       (* count (fun (n : t) => b) := count t + count b *)
        let sigma, count_t = count env src t sigma in
        let sigma, count_b = count (push_local (n, t) env) src b sigma in
        sigma, count_t + count_b
-    | Constr.Prod (n, t, b) -> (* forall (n : t), b *)
+    | Constr.Prod (n, t, b) ->
+       (* count (forall (n : t), b := count t + count b *)
        let sigma, count_t = count env src t sigma in
        let sigma, count_b = count (push_local (n, t) env) src b sigma in
        sigma, count_t + count_b
-    | Constr.App (f, args) -> (* f args *)
+    | Constr.App (f, args) ->
+       (* count (f args) := count f + sum (count args) *)
        let sigma, count_f = count env src f sigma in
        let sigma, count_args =
          map_state_array
@@ -33,6 +37,7 @@ let rec count env src trm sigma =
            sigma
        in sigma, Array.fold_left (fun b a -> b + a) count_f count_args
     | _ ->
+       (* otherwise, no occurrences *)
        sigma, 0
 
 (*
@@ -51,18 +56,22 @@ let rec count env src trm sigma =
 let rec sub env (src, dst) trm sigma =
   let sigma, is_eq = equal env src trm sigma in
   if is_eq then
+    (* when src is equal to trm, return dst *)
     sigma, dst
   else
     match kind sigma trm with
-    | Constr.Lambda (n, t, b) -> (* fun (n : t) => b *)
+    | Constr.Lambda (n, t, b) ->
+       (* sub (fun (n : t) => b) := fun (n : sub t) => sub b *)
        let sigma, sub_t = sub env (src, dst) t sigma in
        let sigma, sub_b = sub (push_local (n, t) env) (src, dst) b sigma in
        sigma, mkLambda (n, sub_t, sub_b)
-    | Constr.Prod (n, t, b) -> (* prod (n : t) => b *)
+    | Constr.Prod (n, t, b) ->
+       (* sub (forall (n : t), b) := forall (n : sub t), sub b *)
        let sigma, sub_t = sub env (src, dst) t sigma in
        let sigma, sub_b = sub (push_local (n, t) env) (src, dst) b sigma in
        sigma, mkProd (n, sub_t, sub_b)
-    | Constr.App (f, args) -> (* f args *)
+    | Constr.App (f, args) ->
+       (* sub (f args) := ((sub f) (map sub args)) *)
        let sigma, sub_f = sub env (src, dst) f sigma in
        let sigma, sub_args =
          map_state_array
@@ -71,4 +80,5 @@ let rec sub env (src, dst) trm sigma =
            sigma
        in sigma, mkApp (sub_f, sub_args)
     | _ ->
+       (* otherwise, return trm *)
        sigma, trm
