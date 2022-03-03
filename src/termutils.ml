@@ -58,7 +58,7 @@ let map_state_array f args =
 (* --- Environments and definitions --- *)
 
 (*
- * Environments in the Coq kernel map names to types. Here are a few
+ * Environments in the Coq kernel map names (local and global variables) to definitions and types. Here are a few
  * utility functions for environments.
  *)
                
