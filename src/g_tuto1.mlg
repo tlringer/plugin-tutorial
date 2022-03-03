@@ -59,7 +59,7 @@ END
  * function call in Count below.
  *
  * EXERCISE 3: Look at the implementation of count in exercise.ml.
- * Look also at the definition of the AST in the Coq kernel:
+ * Look also at the definition of the abstract syntax tree (AST) in the Coq kernel:
  * https://github.com/coq/coq/blob/v8.14/kernel/constr.mli#L237
  * What is each case of the implementation of count in exercise.ml doing?
  * Add comments explaining each case.
