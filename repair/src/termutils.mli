@@ -137,3 +137,12 @@ val all_args :
   EConstr.t -> (* term *)
   evar_map -> (* state *)
   EConstr.t list (* list of all arguments *)
+
+(*
+ * Like all_args, but rather than get [x y] for ((f x) y), get f,
+ * the first function.
+ *)
+val first_fun :
+  EConstr.t -> (* term *)
+  evar_map -> (* state *)
+  EConstr.t (* first function *)

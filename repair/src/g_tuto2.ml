@@ -47,15 +47,6 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      let sigma, old_ind = internalize env o sigma in
      let sigma, new_ind = internalize env n sigma in
      let sigma, map = internalize env e sigma in
-     (* TODO move me, comment, etc *)
-     let rec first_fun trm sigma =
-       let open EConstr in
-       match kind sigma trm with
-       | Constr.App (f, args) ->
-          first_fun f sigma
-       | _ ->
-          trm
-     in
      (* TODO mvoe, comment, etc *)
      let mk_n_rels n =
        let open EConstr in

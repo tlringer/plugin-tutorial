@@ -136,3 +136,14 @@ let all_args trm sigma =
      in List.append (List.tl (unfold f)) (Array.to_list args)
   | _ ->
      []
+
+(*
+ * Like all_args, but rather than get [x y] for ((f x) y), get f,
+ * the first function.
+ *)
+let rec first_fun trm sigma =
+  match kind sigma trm with
+  | Constr.App (f, args) ->
+     first_fun f sigma
+  | _ ->
+     trm
