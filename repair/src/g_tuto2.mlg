@@ -43,12 +43,6 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
      let sigma, old_ind = internalize env o sigma in
      let sigma, new_ind = internalize env n sigma in
      let sigma, map = internalize env e sigma in
-     (* TODO mvoe, comment, etc *)
-     let mk_n_rels n =
-       let open EConstr in
-       Array.of_list (List.map mkRel (List.rev (Collections.range 1 (n + 1))))
-     in
-     (* TODO move me, comment, etc *)
      let get_swap_map env old_ind (f : EConstr.t) (sigma : Evd.evar_map) =
        let open EConstr in
        let open Environ in
@@ -64,10 +58,10 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
            let sigma, c_o_typ = reduce_type env c_o sigma in
            let env_c_o, c_o_typ = push_all_locals_prod env c_o_typ sigma in
            let nargs = nb_rel env_c_o - nb_rel env in
-           let c_o_args = mk_n_rels nargs in
-           let c_o_app = mkApp (c_o, c_o_args) in
+           let c_o_args = mk_n_args nargs in
+           let c_o_app = mkAppl (c_o, c_o_args) in
            let typ_args = all_args c_o_typ sigma in
-           let c_o_lifted = mkApp (f, Array.of_list (List.append typ_args [c_o_app])) in
+           let c_o_lifted = mkAppl (f, List.append typ_args [c_o_app]) in
            let c_o_lifted_red = Reductionops.nf_all env sigma c_o_lifted in
            let swap = (c_o, first_fun c_o_lifted_red sigma) in
            let print env t sigma = Printer.pr_econstr_env env sigma t in
@@ -142,10 +136,10 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
      (* TODO clean move etc *)
      let expand_eta env trm sigma =
        let sigma, typ = reduce_type env trm sigma in
-       let curried_args = Array.to_list (mk_n_rels (arity typ sigma)) in
+       let curried_args = mk_n_args (arity typ sigma) in
        sigma, reconstruct_lambda
                 (fst (push_all_locals_prod (Environ.empty_env) typ sigma))
-                (mkApp (shift_by (List.length curried_args) trm sigma, Array.of_list curried_args))
+                (mkAppl (shift_by (List.length curried_args) trm sigma, curried_args))
      in
      (* TODO *)
      let type_of_inductive index mutind_body =
@@ -211,7 +205,7 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
                 if List.length args = 0 then
                   mkInd (to_i, 0)
                 else
-                  reduce_term env (mkApp (mkInd (to_i, 0), Array.of_list args)) sigma
+                  reduce_term env (mkAppl (mkInd (to_i, 0), args)) sigma
               in sigma, mkProd (n, t', b')
             else
               sigma, mkProd (n, t, b')
@@ -240,13 +234,7 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
                 if List.length args = 0 then
                   mkInd (to_i, 0)
                 else
-                  mkApp (mkInd (to_i, 0), Array.of_list args)
-              in sigma, mkProd (n, t', b')
-            else if is_or_applies p t sigma then
-              let t' =
-                let f = first_fun t sigma in
-                let args = all_args t sigma in
-                reduce_term env (mkApp (f, Array.of_list args)) sigma
+                  mkAppl (mkInd (to_i, 0), args)
               in sigma, mkProd (n, t', b')
             else
               sigma, mkProd (n, t, b')
@@ -258,8 +246,8 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
             let c_args = all_args arg sigma in
             let swap_map = Array.of_list swap_map in
             let (_, lifted_constr) = swap_map.(i - 1) in
-            let arg' = reduce_term env (mkApp (lifted_constr, Array.of_list c_args)) sigma in
-            sigma, reduce_term env (mkApp (f, Array.of_list (List.append args [arg']))) sigma
+            let arg' = reduce_term env (mkAppl (lifted_constr, c_args)) sigma in
+            sigma, reduce_term env (mkAppl (f, List.append args [arg'])) sigma
        in
        let rec init env elim i from_i to_i swap_map sigma =
          let open EConstr in
@@ -275,7 +263,7 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
                 if List.length args = 0 then
                   sigma, mkInd (to_i, 0)
                 else
-                  sigma, mkApp (mkInd (to_i, 0), Array.of_list args)
+                  sigma, mkAppl (mkInd (to_i, 0), args)
               in init (push_local (n, t') env) b (i + 1) from_i to_i swap_map sigma
             else
               init (push_local (n, t) env) b (i + 1) from_i to_i swap_map sigma
@@ -283,7 +271,6 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
             sigma, env
        in init env_p b 0 from_i to_i swap_map sigma
      in
-     let mkAppl (f, args) = mkApp (f, Array.of_list args) in
      (* TODO explain, move, etc *)
      let initialize_dep_elim env elim elim_new from_i to_i sigma =
        let open Environ in
@@ -296,8 +283,8 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
            let sigma, elim_app = deconstruct_eliminator env_elim elim_body from_i sigma in
            List.length elim_app.pms
          in
-         let pms = Array.map (fun t -> shift_by (nb_rel env_dep_elim - npms) t sigma) (mk_n_rels npms) in
-         let elim_pms = reduce_term env_dep_elim (mkApp (elim_eta, pms)) sigma in
+         let pms = List.map (fun t -> shift_by (nb_rel env_dep_elim - npms) t sigma) (mk_n_args npms) in
+         let elim_pms = reduce_term env_dep_elim (mkAppl (elim_eta, pms)) sigma in
          let p = shift_by (nb_rel env_dep_elim - npms - 1) (mkRel 1) sigma in
          let elim_p = reduce_term env_dep_elim (mkAppl (elim_pms, [p])) sigma in
          let sigma, cs =
@@ -308,10 +295,8 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
            initialize_dep_elim_cs env_dep_elim elim_p npms elim_app.cs swap_map sigma
          in
          let elim_cs = reduce_term env_dep_elim (mkAppl (elim_p, cs)) sigma in
-         let final_args =
-           let nargs = arity elim_cs sigma in
-           mk_n_rels nargs
-         in sigma, reduce_term env_dep_elim (mkApp (elim_cs, final_args)) sigma
+         let final_args = mk_n_args (arity elim_cs sigma) in
+         sigma, reduce_term env_dep_elim (mkAppl (elim_cs, final_args)) sigma
        in sigma, reconstruct_lambda_n env_dep_elim dep_elim (nb_rel env)
      in
      let sigma, new_elim =

@@ -146,3 +146,18 @@ val first_fun :
   EConstr.t -> (* term *)
   evar_map -> (* state *)
   EConstr.t (* first function *)
+
+(*
+ * Make a list of n arguments, starting with the nth most recently bound
+ * variable, and ending with the most recently bound variable.
+ *)
+val mk_n_args :
+  int -> (* number of arguments *)
+  EConstr.t list (* list of arguments *)
+
+(*
+ * Lift Coq's mkApp from arrays to lists
+ *)
+val mkAppl :
+  (EConstr.t * EConstr.t list) -> (* (f, args) *)
+  EConstr.t (* mkApp (f, Array.of_list args) *)

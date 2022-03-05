@@ -147,3 +147,15 @@ let rec first_fun trm sigma =
      first_fun f sigma
   | _ ->
      trm
+
+(*
+ * Make a list of n arguments, starting with the nth most recently bound
+ * variable, and ending with the most recently bound variable
+ *)
+let mk_n_args n =
+  List.map mkRel (List.rev (Collections.range 1 (n + 1)))
+
+(*
+ * Lift mkApp from arrays to lists
+ *)
+let mkAppl (f, args) = mkApp (f, Array.of_list args)
