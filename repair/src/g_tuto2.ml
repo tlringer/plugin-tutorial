@@ -102,7 +102,11 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
            let typ_args : EConstr.t list = unfold_args c_o_typ sigma in
            let c_o_lifted = mkApp (f, Array.of_list (List.append typ_args [c_o_app])) in
            let c_o_lifted_red = Reductionops.nf_all env sigma c_o_lifted in
-           let swap = ((((i_o, ii_o), i), u_o), destConstruct sigma (first_fun c_o_lifted_red sigma)) in
+           let swap = (c_o, first_fun c_o_lifted_red sigma) in
+           let print env t sigma = Printer.pr_econstr_env env sigma t in
+           Feedback.msg_notice (print env (fst swap) sigma);
+           Feedback.msg_notice (print env (snd swap) sigma);
+           Feedback.msg_notice (Pp.str ";");
            sigma, swap)
          (range 1 (ncons + 1))
          sigma
@@ -118,7 +122,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
          n e ?loc ~atts () -> coqpp_body o n e
          (Attributes.unsupported_attributes atts)), None))]
 
-let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
+let () = Vernacextend.vernac_extend ~command:"ConfigureSwap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
          [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Configure", 
                                      Vernacextend.TyTerminal ("Swap", 
                                      Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
@@ -127,7 +131,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
                                                              n
                                                              () = Vernacextend.VtDefault (fun () -> 
                                                                   
-# 125 "src/g_tuto2.mlg"
+# 129 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, old_ind = internalize env o sigma in
@@ -156,7 +160,7 @@ let () = Vernacextend.vernac_extend ~command:"SwapCases" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))))), 
          (let coqpp_body o n e i
          () = Vernacextend.VtDefault (fun () -> 
-# 146 "src/g_tuto2.mlg"
+# 150 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, old_ind = internalize env o sigma in
