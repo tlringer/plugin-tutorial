@@ -4,6 +4,9 @@
  *)
 
 open EConstr
+open Declarations
+open Environ
+open Stateutils
 
 (* --- Environments --- *)
 
@@ -159,3 +162,18 @@ let mk_n_args n =
  * Lift mkApp from arrays to lists
  *)
 let mkAppl (f, args) = mkApp (f, Array.of_list args)
+
+(* --- Inductive Types --- *)
+
+(*
+ * Map a function f on all constructors of inductive type ind.
+ * Note that this does not handle mutually inductive types.
+ *)
+let map_constructors f env ind =
+  let m = lookup_mind (fst (fst ind)) env in
+  let b = m.mind_packets.(0) in
+  let cs = b.mind_consnames in
+  let ncons = Array.length cs in
+  map_state
+    (fun i -> f (mkConstructU ((fst ind, i), snd ind)))
+    (Collections.range 1 (ncons + 1))

@@ -47,33 +47,26 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      let sigma, old_ind = internalize env o sigma in
      let sigma, new_ind = internalize env n sigma in
      let sigma, map = internalize env e sigma in
-     let get_swap_map env old_ind (f : EConstr.t) (sigma : Evd.evar_map) =
+     let get_swap_map env old_ind f sigma =
        let open EConstr in
        let open Environ in
-       let open Declarations in
-       let ((i_o, ii_o), u_o) = destInd sigma old_ind in
-       let m_o = lookup_mind i_o env in
-       let b_o = m_o.mind_packets.(0) in
-       let cs_o = b_o.mind_consnames in
-       let ncons = Array.length cs_o in
-       map_state
-         (fun i sigma ->
-           let c_o = mkConstructU (((i_o, ii_o), i), u_o) in
-           let sigma, c_o_typ = reduce_type env c_o sigma in
-           let env_c_o, c_o_typ = push_all_locals_prod env c_o_typ sigma in
-           let nargs = nb_rel env_c_o - nb_rel env in
-           let c_o_args = mk_n_args nargs in
-           let c_o_app = mkAppl (c_o, c_o_args) in
-           let typ_args = all_args c_o_typ sigma in
-           let c_o_lifted = mkAppl (f, List.append typ_args [c_o_app]) in
-           let c_o_lifted_red = Reductionops.nf_all env sigma c_o_lifted in
-           let swap = (c_o, first_fun c_o_lifted_red sigma) in
-           let print env t sigma = Printer.pr_econstr_env env sigma t in
+       let ind = destInd sigma old_ind in
+       map_constructors
+         (fun c sigma ->
+           let sigma, c_typ = reduce_type env c sigma in
+           let env_c, c_typ = push_all_locals_prod env c_typ sigma in
+           let nargs = nb_rel env_c - nb_rel env in
+           let c_app = mkAppl (c, mk_n_args nargs) in
+           let typ_args = all_args c_typ sigma in
+           let c_lifted = mkAppl (f, List.append typ_args [c_app]) in
+           let c_lifted_red = Reductionops.nf_all env sigma c_lifted in
+           let swap = (c, first_fun c_lifted_red sigma) in
            Feedback.msg_notice (print env (fst swap) sigma);
            Feedback.msg_notice (print env (snd swap) sigma);
            Feedback.msg_notice (Pp.str ";");
            sigma, swap)
-         (Collections.range 1 (ncons + 1))
+         env
+         ind
          sigma
      in
      let sigma, swap_map = get_swap_map env old_ind map sigma in

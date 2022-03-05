@@ -161,3 +161,16 @@ val mk_n_args :
 val mkAppl :
   (EConstr.t * EConstr.t list) -> (* (f, args) *)
   EConstr.t (* mkApp (f, Array.of_list args) *)
+
+(* --- Inductive Types --- *)
+
+(*
+ * Map a function f on all constructors of inductive type ind.
+ * Note that this does not handle mutually inductive types.
+ *)
+val map_constructors :
+  (EConstr.t -> evar_map -> 'a state) -> (* f *)
+  env -> (* environment *)
+  Names.Ind.t * EConstr.EInstance.t -> (* ind *)
+  evar_map -> (* state *)
+  ('a list) state (* stateful (map f (constructors ind)) *)
