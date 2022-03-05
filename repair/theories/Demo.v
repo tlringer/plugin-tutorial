@@ -24,7 +24,24 @@ Proof.
   - apply New.cons; auto.
 Defined.
 
-Map Old.list New.list := f.
+Map new_list_rect Old.list New.list := f.
+
+Print new_list_rect.
+
+(* (fun (P : Old.list T -> Type) (f : P (Old.nil T))
+   (f0 : forall (t : T) (l : Old.list T), P l -> P (Old.cons T t l))
+   (l : Old.list T) => Old.list_rect T P f f0 l)
+
+(New.list T -> Type)
+
+(fun (f : P (Old.nil T))
+   (f0 : forall (t : T) (l : Old.list T), P l -> P (Old.cons T t l))
+   (l : Old.list T) => Old.list_rect T P f f0 l)
+(fun (f0 : forall (t : T) (l : Old.list T), P l -> P (Old.cons T t l))
+   (l : Old.list T) => Old.list_rect T P f f0 l)
+
+
+ *)
 
 (*
  * TODO test composing with the sub command

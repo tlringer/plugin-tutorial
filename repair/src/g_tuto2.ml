@@ -25,19 +25,23 @@ type elim_app =
     cs : EConstr.t list;
     final_args : EConstr.t list;
   }
-   
+
+
+  
+let print env t sigma = Printer.pr_econstr_env env sigma t
 
 
 let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
          [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Map", 
+                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_ident), 
                                      Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
                                      Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
                                      Vernacextend.TyTerminal (":=", Vernacextend.TyNonTerminal (
                                                                     Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                                                    Vernacextend.TyNil))))), 
-         (let coqpp_body o n e
+                                                                    Vernacextend.TyNil)))))), 
+         (let coqpp_body i o n e
          () = Vernacextend.VtDefault (fun () -> 
-# 38 "src/g_tuto2.mlg"
+# 41 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, old_ind = internalize env o sigma in
@@ -281,9 +285,12 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      in
      let initialize_dep_elim_env env elim_rev from_i to_i sigma =
        let sigma, elim_rev_eta = expand_eta env elim_rev sigma in
+       Feedback.msg_notice (print env elim_rev_eta sigma);
        let env_elim_rev, elim_body_rev = zoom_lambda_term env elim_rev_eta sigma in
+       Feedback.msg_notice (print env_elim_rev elim_body_rev sigma);
        let sigma, elim_app_rev = deconstruct_eliminator env_elim_rev elim_body_rev from_i sigma in
        let env, elim_rev = zoom_n_lambda env (List.length elim_app_rev.pms) elim_rev_eta sigma in
+       Feedback.msg_notice (print env elim_rev sigma);
        let (p_n, p_typ, b) = destLambda sigma elim_rev in
        let rec init_p_typ env p_typ sigma =
          let open EConstr in
@@ -305,6 +312,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
             sigma, p_typ
        in
        let sigma, p_typ' = init_p_typ env p_typ sigma in
+       Feedback.msg_notice (print env p_typ' sigma);
        let env_p = push_local (p_n, p_typ') env in
        let last (l : 'a list) : 'a =
          List.hd (List.rev l)
@@ -346,7 +354,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
             let ((_, i), _) = destConstruct sigma (first_fun arg sigma) in
             let c_args = unfold_args arg sigma in
             let swap_map = Array.of_list swap_map in
-            let (_, lifted_constr) = swap_map.(i) in
+            let (_, lifted_constr) = swap_map.(i - 1) in
             let arg' = reduce_term env (mkApp (lifted_constr, Array.of_list c_args)) sigma in
             sigma, reduce_term env (mkApp (f, Array.of_list (List.append args [arg']))) sigma
        in
@@ -356,6 +364,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
          | Constr.Lambda (n, t, b) ->
             if i < List.length elim_app_rev.cs then
               let sigma, t' = init_case_typ env t (mkRel (i + 1)) from_i to_i swap_map sigma in
+              Feedback.msg_notice (print env t' sigma);
               init (push_local (n, t') env) b (i + 1) from_i to_i swap_map sigma
             else if is_or_applies (mkInd (from_i, 0)) t sigma then
               let args = unfold_args t sigma in
@@ -373,10 +382,11 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      in
      let mkAppl (f, args) = mkApp (f, Array.of_list args) in
      (* TODO explain, move, etc *)
-     let initialize_dep_elim env elim from_i to_i sigma =
+     let initialize_dep_elim env elim elim_new from_i to_i sigma =
        let open Environ in
        let sigma, env_dep_elim = initialize_dep_elim_env env elim from_i to_i sigma in
-       let sigma, elim_eta = expand_eta env_dep_elim elim sigma in
+       let sigma, elim_eta = expand_eta env_dep_elim elim_new sigma in
+       Feedback.msg_notice (print env_dep_elim elim_eta sigma);
        let sigma, dep_elim =
          let npms =
            let env_elim, elim_body = zoom_lambda_term env_dep_elim elim_eta sigma in
@@ -402,19 +412,21 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
        in sigma, reconstruct_lambda_n env_dep_elim dep_elim (nb_rel env)
      in
      let sigma, new_elim =
+       let _ = Feedback.msg_notice (print env new_ind sigma) in
        let sigma, new_elim_old = type_eliminator env (fst (destInd sigma new_ind)) sigma in
+       Feedback.msg_notice (print env new_elim_old sigma);
        let (from_i, _) = fst (destInd sigma old_ind) in
        let (to_i, _) = fst (destInd sigma new_ind) in
-       initialize_dep_elim env new_elim_old from_i to_i sigma
+       initialize_dep_elim env old_elim new_elim_old from_i to_i sigma
      in
-     let print env t sigma = Printer.pr_econstr_env env sigma t in
      Feedback.msg_notice (print env old_elim sigma);
      Feedback.msg_notice (print env new_elim sigma);
+     define i new_elim sigma;
      (* TODO define old and new eliminators, save configuration to table *)
      ()
    
-              ) in fun o
-         n e ?loc ~atts () -> coqpp_body o n e
+              ) in fun i
+         o n e ?loc ~atts () -> coqpp_body i o n e
          (Attributes.unsupported_attributes atts)), None))]
 
 let () = Vernacextend.vernac_extend ~command:"SwapCases" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -429,7 +441,7 @@ let () = Vernacextend.vernac_extend ~command:"SwapCases" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))))), 
          (let coqpp_body o n e i
          () = Vernacextend.VtDefault (fun () -> 
-# 424 "src/g_tuto2.mlg"
+# 435 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, old_ind = internalize env o sigma in
