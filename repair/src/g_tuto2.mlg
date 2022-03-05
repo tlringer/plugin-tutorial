@@ -418,7 +418,7 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
      Feedback.msg_notice (print env old_elim sigma);
      Feedback.msg_notice (print env new_elim sigma);
      define i new_elim sigma;
-     (* TODO define old and new eliminators, save configuration to table *)
+     (* TODO define old and new eliminators *)
      ()
    }
 END
@@ -438,7 +438,7 @@ VERNAC COMMAND EXTEND SwapCases CLASSIFIED AS SIDEFF
      let sigma, new_ind = internalize env n sigma in
      let sigma, trm = internalize env e sigma in
      (*
-      * TODO: retrieve configuration, pass to sub-like transformation
+      * TODO: retrieve configuration (not in table, just get from scratch---note about table in exercise), pass to sub implementation
       *)
      ()
    }
