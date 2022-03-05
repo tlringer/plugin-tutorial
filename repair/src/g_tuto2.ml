@@ -14,6 +14,7 @@ let _ = Mltop.add_known_module __coq_plugin_name
  *)
 open Stdarg
 open Termutils
+open Stateutils
 (*open Exercise*)
 
 type elim_app =
@@ -40,7 +41,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
                                                                     Vernacextend.TyNil)))))), 
          (let coqpp_body i o n e
          () = Vernacextend.VtDefault (fun () -> 
-# 40 "src/g_tuto2.mlg"
+# 41 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, old_ind = internalize env o sigma in
@@ -54,11 +55,6 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
           zoom_product_type (push_local (n, t) env) b
        | _ ->
           (env, typ)
-     in
-     (* TODO move me, comment, etc *)
-     let reduce_type env trm sigma =
-       let sigma, typ = Typing.type_of ~refresh:true env sigma trm in
-       sigma, Reductionops.nf_betaiotazeta env sigma typ
      in
      (* TODO move me, comment, etc *)
      let unfold_args_app trm sigma =
@@ -209,7 +205,6 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      (* TODO *)
      let type_of_inductive index mutind_body =
        let open Declarations in
-       let open Environ in
        let ind_bodies = mutind_body.mind_packets in
        let ind_body = Array.get ind_bodies index in
        let univs = Declareops.inductive_polymorphic_context mutind_body in
@@ -217,23 +212,10 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
        let mutind_spec = (mutind_body, ind_body) in
        EConstr.of_constr (Inductive.type_of_inductive (mutind_spec, univ_instance))
      in
-     (* TODO *)
-     let rec take_split (i : int) (l : 'a list) : ('a list * 'a list) =
-       if i = 0 then
-         ([], l)
-       else
-         match l with
-         | [] ->
-            ([], [])
-         | h :: tl ->
-            let (before, after) = take_split (i - 1) tl in
-            (h :: before, after)
-     in
      (* TODO *)     
      let deconstruct_eliminator env app from_i sigma =
        let open Environ in
        let open Declarations in
-       let open Names in
        let elim = first_fun app sigma in
        let ip_args = unfold_args app sigma in
        let sigma, ip_typ = reduce_type env elim sigma in
@@ -243,10 +225,10 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
        let num_indices = from_arity - npms in
        let num_props = 1 in
        let num_constrs = arity ip_typ sigma - npms - num_props - num_indices - 1 in
-       let (pms, pmd_args) = take_split npms ip_args in
+       let (pms, pmd_args) = Collections.take_split npms ip_args in
        match pmd_args with
        | p :: cs_and_args ->
-          let (cs, final_args) = take_split num_constrs cs_and_args in
+          let (cs, final_args) = Collections.take_split num_constrs cs_and_args in
           sigma, { elim; pms; p; cs; final_args }
        | _ ->
           failwith "can't deconstruct eliminator; no final arguments"
@@ -328,13 +310,10 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
                   mkApp (mkInd (to_i, 0), Array.of_list args)
               in sigma, mkProd (n, t', b')
             else if is_or_applies p t sigma then
-              let open Environ in
               let t' =
                 let f = first_fun t sigma in
                 let args = all_but_last (unfold_args t sigma) in
                 let arg = last (unfold_args t sigma) in
-                let pms = mk_n_rels (List.length elim_app_rev.pms) in
-                let pms = Array.map (fun t -> shift_by (nb_rel env - Array.length pms) t sigma) pms in
                 reduce_term env (mkApp (f, Array.of_list (List.append args [arg]))) sigma
               in sigma, mkProd (n, t', b')
             else
@@ -419,32 +398,5 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
    
               ) in fun i
          o n e ?loc ~atts () -> coqpp_body i o n e
-         (Attributes.unsupported_attributes atts)), None))]
-
-let () = Vernacextend.vernac_extend ~command:"SwapCases" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
-         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Swap", 
-                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                     Vernacextend.TyTerminal ("in", Vernacextend.TyNonTerminal (
-                                                                    Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                                                    Vernacextend.TyTerminal ("as", 
-                                                                    Vernacextend.TyNonTerminal (
-                                                                    Extend.TUentry (Genarg.get_arg_tag wit_ident), 
-                                                                    Vernacextend.TyNil))))))), 
-         (let coqpp_body o n e i
-         () = Vernacextend.VtDefault (fun () -> 
-# 427 "src/g_tuto2.mlg"
-    
-     let sigma, env = global_env () in
-     let sigma, old_ind = internalize env o sigma in
-     let sigma, new_ind = internalize env n sigma in
-     let sigma, trm = internalize env e sigma in
-     (*
-      * TODO: retrieve configuration (not in table, just get from scratch---note about table in exercise), pass to sub implementation
-      *)
-     ()
-   
-              ) in fun o
-         n e i ?loc ~atts () -> coqpp_body o n e i
          (Attributes.unsupported_attributes atts)), None))]
 

@@ -1,5 +1,6 @@
 open EConstr
 open Termutils
+open Stateutils
 
 (*
  * Count the number of occurrences of terms equal to src in trm.

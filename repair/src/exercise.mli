@@ -1,7 +1,7 @@
 open Evd
-open Termutils
 open Environ
-
+open Stateutils
+   
 (*
  * Count the number of occurrences of terms equal to src in trm.
  * Make some simplifying assumptions about the format of trm
