@@ -28,9 +28,9 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
 | [ "Map" constr(o) constr(n) ":=" constr(e) ] ->
    {
      let sigma, env = global_env () in
-     let sigma, old_ind = internalize env sigma o in
-     let sigma, new_ind = internalize env sigma n in
-     let sigma, map = internalize env sigma e in
+     let sigma, old_ind = internalize env o sigma in
+     let sigma, new_ind = internalize env n sigma in
+     let sigma, map = internalize env e sigma in
      (* TODO: invert map, save both directions to a table *)
      ()
    }
@@ -47,9 +47,9 @@ VERNAC COMMAND EXTEND SwapCases CLASSIFIED AS SIDEFF
 | [ "Swap" constr(o) constr(n) "in" constr(e) "as" ident(i) ] ->
    {
      let sigma, env = global_env () in
-     let sigma, old_ind = internalize env sigma o in
-     let sigma, new_ind = internalize env sigma n in
-     let sigma, trm = internalize env sigma e in
+     let sigma, old_ind = internalize env o sigma in
+     let sigma, new_ind = internalize env n sigma in
+     let sigma, trm = internalize env e sigma in
      (*
       * TODO: retrieve map, configure swap transformation,
       * swap trm, define new term

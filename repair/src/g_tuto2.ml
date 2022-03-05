@@ -5,8 +5,11 @@ let _ = Mltop.add_known_module __coq_plugin_name
  
 
 (*
- * In this exercise, we will implement a Coq plugin!
- * Our plugin will manipulate terms from Coq and define new terms.
+ * In this exercise, we will extend our Coq plugin from before!
+ * Last time, we wrote a plugin that manipulates terms from Coq
+ * and then defines new terms. This time, we'll use that same idea
+ * to implement a form of proof repair!
+ *
  * As always, this will be discussion-based, with the usual format.
  *)
 open Pp
@@ -16,74 +19,53 @@ open Exercise
 
 
 
-let () = Vernacextend.vernac_extend ~command:"MyDefine" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
-         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("MyDefine", 
-                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_ident), 
+let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
+         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Map", 
+                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
+                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
                                      Vernacextend.TyTerminal (":=", Vernacextend.TyNonTerminal (
                                                                     Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                                                    Vernacextend.TyNil)))), 
-         (let coqpp_body i e
+                                                                    Vernacextend.TyNil))))), 
+         (let coqpp_body o n e
          () = Vernacextend.VtDefault (fun () -> 
-# 38 "src/g_tuto2.mlg"
+# 29 "src/g_tuto2.mlg"
     
-     let sigma, env = global_env () in (* get global state and environment *)
-     let sigma, trm = internalize env e sigma in (* convert input term to internal representation *)
-     define i trm sigma (* map input identifier to input term in the global environment *) 
+     let sigma, env = global_env () in
+     let sigma, old_ind = internalize env o sigma in
+     let sigma, new_ind = internalize env n sigma in
+     let sigma, map = internalize env e sigma in
+     (* TODO: invert map, save both directions to a table *)
+     ()
    
-              ) in fun i
-         e ?loc ~atts () -> coqpp_body i e
+              ) in fun o
+         n e ?loc ~atts () -> coqpp_body o n e
          (Attributes.unsupported_attributes atts)), None))]
 
-let () = Vernacextend.vernac_extend ~command:"Count" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
-         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Count", 
+let () = Vernacextend.vernac_extend ~command:"SwapCases" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
+         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Swap", 
                                      Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                     Vernacextend.TyTerminal ("in", Vernacextend.TyNonTerminal (
-                                                                    Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                                                    Vernacextend.TyNil)))), 
-         (let coqpp_body src_e e
-         () = Vernacextend.VtDefault (fun () -> 
-# 76 "src/g_tuto2.mlg"
-    
-     let sigma, env = global_env () in (* get global state and environment *)
-     let sigma, src = internalize env src_e sigma in (* convert to internal representation *)
-     let sigma, trm = internalize env e sigma in (* convert to internal representation *)
-     let sigma, count = count env src trm sigma in (* count occurrences of src in trm *)
-     Feedback.msg_notice (strbrk (string_of_int count)) (* print the result *)
-   
-              ) in fun src_e
-         e ?loc ~atts () -> coqpp_body src_e e
-         (Attributes.unsupported_attributes atts)), None))]
-
-let () = Vernacextend.vernac_extend ~command:"Sub" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
-         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Sub", 
-                                     Vernacextend.TyNonTerminal (Extend.TUlist0 (
-                                                                 Extend.TUentry (Genarg.get_arg_tag wit_constr)), 
-                                     Vernacextend.TyTerminal ("with", 
-                                     Vernacextend.TyNonTerminal (Extend.TUlist0 (
-                                                                 Extend.TUentry (Genarg.get_arg_tag wit_constr)), 
+                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
                                      Vernacextend.TyTerminal ("in", Vernacextend.TyNonTerminal (
                                                                     Extend.TUentry (Genarg.get_arg_tag wit_constr), 
                                                                     Vernacextend.TyTerminal ("as", 
                                                                     Vernacextend.TyNonTerminal (
                                                                     Extend.TUentry (Genarg.get_arg_tag wit_ident), 
-                                                                    Vernacextend.TyNil)))))))), 
-         (let coqpp_body src_es dst_es e i
+                                                                    Vernacextend.TyNil))))))), 
+         (let coqpp_body o n e i
          () = Vernacextend.VtDefault (fun () -> 
-# 104 "src/g_tuto2.mlg"
+# 48 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
-     let sigma, srcs = map_state (internalize env) src_es sigma in
-     let sigma, dsts = map_state (internalize env) dst_es sigma in
+     let sigma, old_ind = internalize env o sigma in
+     let sigma, new_ind = internalize env n sigma in
      let sigma, trm = internalize env e sigma in
-     let sigma, subbed =
-       fold_left_state
-         (fun subbed (src, dst) -> sub env (src, dst) subbed)
-         trm
-         (List.combine srcs dsts)
-         sigma
-     in Termutils.define i subbed sigma
+     (*
+      * TODO: retrieve map, configure swap transformation,
+      * swap trm, define new term
+      *)
+     ()
    
-              ) in fun src_es
-         dst_es e i ?loc ~atts () -> coqpp_body src_es dst_es e i
+              ) in fun o
+         n e i ?loc ~atts () -> coqpp_body o n e i
          (Attributes.unsupported_attributes atts)), None))]
 
