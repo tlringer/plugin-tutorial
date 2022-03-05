@@ -2,44 +2,36 @@ open EConstr
 open Termutils
 open Stateutils
 
-(*
- * Count the number of occurrences of terms equal to src in trm.
- * Make some simplifying assumptions about the format of trm
- * (no pattern matching, no fixpoints, no lets, and so on).
- *
- * I have done this one for you, to help you figure out how to implement sub.
- * I tried to use the state monad only when I felt like it added clarity,
- * but if you find it confusing, please ask for help.
- *)
-let rec count env src trm sigma =
-  let sigma, is_eq = equal env src trm sigma in
-  if is_eq then
-    (* when src is equal to trm, up the count *)
-    sigma, 1
-  else
-    match kind sigma trm with
-    | Constr.Lambda (n, t, b) ->
-       (* count (fun (n : t) => b) := count t + count b *)
-       let sigma, count_t = count env src t sigma in
-       let sigma, count_b = count (push_local (n, t) env) src b sigma in
-       sigma, count_t + count_b
-    | Constr.Prod (n, t, b) ->
-       (* count (forall (n : t), b := count t + count b *)
-       let sigma, count_t = count env src t sigma in
-       let sigma, count_b = count (push_local (n, t) env) src b sigma in
-       sigma, count_t + count_b
-    | Constr.App (f, args) ->
-       (* count (f args) := count f + sum (count args) *)
-       let sigma, count_f = count env src f sigma in
-       let sigma, count_args =
-         map_state_array
-           (count env src)
-           args
-           sigma
-       in sigma, Array.fold_left (fun b a -> b + a) count_f count_args
-    | _ ->
-       (* otherwise, no occurrences *)
-       sigma, 0
+(* TODO move, explain, clean *)
+let pms_from_constructor_body env_c_body c_body sigma =
+  let sigma, c_body_typ = reduce_type env_c_body c_body sigma in
+  sigma, all_args c_body_typ sigma
+
+(* TODO move, explain, clean *)
+let constructor_body env c sigma =
+  let open Environ in
+  let sigma, c_typ = reduce_type env c sigma in
+  let env_c_body, c_body = push_all_locals_prod env c_typ sigma in
+  let nargs = nb_rel env_c_body - nb_rel env in
+  sigma, (env_c_body, mkAppl (c, mk_n_args nargs))
+
+(* TODO explain, clean *)
+let swap_constructor env f c sigma =
+  let sigma, (env_c_body, c_body) = constructor_body env c sigma in
+  let sigma, pms = pms_from_constructor_body env_c_body c_body sigma in
+  let f_args = List.append pms [c_body] in
+  let f_c = apply_reduce normalize_term env f f_args sigma in
+  sigma, first_fun f_c sigma
+
+(* TODO make exercise, explain, clean *)
+let get_swap_map env f old_ind sigma =
+  map_constructors
+    (fun old_c sigma ->
+      let sigma, new_c = swap_constructor env f old_c sigma in
+      sigma, (old_c, new_c))
+    env
+    (destInd sigma old_ind)
+    sigma
 
 (*
  * Substitute all occurrences of terms equal to src in trm with dst.

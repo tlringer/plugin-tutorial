@@ -15,7 +15,7 @@ let _ = Mltop.add_known_module __coq_plugin_name
 open Stdarg
 open Termutils
 open Stateutils
-(*open Exercise*)
+open Exercise
 
 type elim_app =
   {
@@ -47,40 +47,8 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      let sigma, old_ind = internalize env o sigma in
      let sigma, new_ind = internalize env n sigma in
      let sigma, map = internalize env e sigma in
-     (* TODO move, explain, clean *)
-     let parameters_from_constructor env c sigma =
-       let sigma, c_typ = reduce_type env c sigma in
-       let c_typ_body = snd (push_all_locals_prod env c_typ sigma) in
-       sigma, all_args c_typ_body sigma
-     in
-     (* TODO move to exercise, explain, clean *)
-     let apply_map_case env f c sigma =
-       let open Environ in
-       let sigma, c_typ = reduce_type env c sigma in
-       let env_c, c_typ = push_all_locals_prod env c_typ sigma in
-       let nargs = nb_rel env_c - nb_rel env in
-       let c_app = mkAppl (c, mk_n_args nargs) in
-       let sigma, pms = parameters_from_constructor env c sigma in
-       let f_args = List.append pms [c_app] in
-       let f_c = apply_reduce normalize_term env f f_args sigma in
-       sigma, first_fun f_c sigma
-     in
-     (* TODO move to exercise, explain, clean *)
-     let get_swap_map env f old_ind sigma =
-       let open EConstr in
-       let ind = destInd sigma old_ind in
-       map_constructors
-         (fun old_c sigma ->
-           let sigma, new_c = apply_map_case env f old_c sigma in
-           Feedback.msg_notice (print env old_c sigma);
-           Feedback.msg_notice (print env new_c sigma);
-           Feedback.msg_notice (Pp.str ";");
-           sigma, (old_c, new_c))
-         env
-         ind
-         sigma
-     in
      let sigma, swap_map = get_swap_map env map old_ind sigma in
+     (* TODO print swap map --- move to another command --- show tests --- then move on *)
      (* TODO explain move etc *)
      let type_eliminator env ind sigma =
        Evd.fresh_global env sigma (Indrec.lookup_eliminator env ind Sorts.InType)
