@@ -124,3 +124,16 @@ val reduce_type :
   EConstr.t -> (* term *)
   evar_map -> (* state *)
   EConstr.t state (* stateful reduced type of term *)
+
+(* --- Functions and Application --- *)
+
+(*
+ * Get all arguments of a function, recursing into recursive applications
+ * when functions have the form ((f x) y), to get both x and y, and so on.
+ * Return a list of arguments if it is a function application, and otherwise
+ * return the empty list.
+ *)
+val all_args :
+  EConstr.t -> (* term *)
+  evar_map -> (* state *)
+  EConstr.t list (* list of all arguments *)

@@ -115,3 +115,24 @@ let reduce_term env trm sigma =
 let reduce_type env trm sigma =
   let sigma, typ = Typing.type_of ~refresh:true env sigma trm in
   sigma, reduce_term env typ sigma
+
+(* --- Functions and Application --- *)
+
+(*
+ * Get all arguments of a function, recursing into recursive applications
+ * when functions have the form ((f x) y), to get both x and y, and so on.
+ * Return list of arguments if it is a function application, and otherwise
+ * return the empty list.
+ *)
+let all_args trm sigma =
+  match kind sigma trm with
+  | Constr.App (f, args) ->
+     let rec unfold t =
+       match kind sigma t with
+       | Constr.App (f, args) ->
+          List.append (unfold f) (Array.to_list args)
+       | _ ->
+          [t]
+     in List.append (List.tl (unfold f)) (Array.to_list args)
+  | _ ->
+     []

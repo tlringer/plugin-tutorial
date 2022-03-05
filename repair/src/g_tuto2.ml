@@ -48,23 +48,6 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      let sigma, new_ind = internalize env n sigma in
      let sigma, map = internalize env e sigma in
      (* TODO move me, comment, etc *)
-     let unfold_args_app trm sigma =
-       let open EConstr in
-       let (f, args) = destApp sigma trm in
-       let rec unfold trm sigma =
-         match kind sigma trm with
-         | Constr.App (f, args) ->
-            List.append (unfold f sigma) (Array.to_list args)
-         | _ ->
-            [trm]
-       in List.append (List.tl (unfold f sigma)) (Array.to_list args)
-     in
-     (* TODO move me, comment, etc *)
-     let unfold_args trm sigma =
-       let open EConstr in
-       if isApp sigma trm then unfold_args_app trm sigma else []
-     in
-     (* TODO move me, comment, etc *)
      let rec first_fun trm sigma =
        let open EConstr in
        match kind sigma trm with
@@ -96,7 +79,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
            let nargs = nb_rel env_c_o - nb_rel env in
            let c_o_args = mk_n_rels nargs in
            let c_o_app = mkApp (c_o, c_o_args) in
-           let typ_args : EConstr.t list = unfold_args c_o_typ sigma in
+           let typ_args = all_args c_o_typ sigma in
            let c_o_lifted = mkApp (f, Array.of_list (List.append typ_args [c_o_app])) in
            let c_o_lifted_red = Reductionops.nf_all env sigma c_o_lifted in
            let swap = (c_o, first_fun c_o_lifted_red sigma) in
@@ -192,7 +175,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
        let open Environ in
        let open Declarations in
        let elim = first_fun app sigma in
-       let ip_args = unfold_args app sigma in
+       let ip_args = all_args app sigma in
        let sigma, ip_typ = reduce_type env elim sigma in
        let from_m = lookup_mind from_i env in
        let npms = from_m.mind_nparams in
@@ -236,7 +219,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
             let env_b = push_local (n, t) env in
             let sigma, b' = init_p_typ env_b b sigma in
             if is_or_applies (mkInd (from_i, 0)) t sigma then
-              let args = unfold_args t sigma in
+              let args = all_args t sigma in
               let t' =
                 if List.length args = 0 then
                   mkInd (to_i, 0)
@@ -265,7 +248,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
             let env_b = push_local (n, t) env in
             let sigma, b' = init_case_typ env_b b (shift_by 1 p sigma) from_i to_i swap_map sigma in
             if is_or_applies (mkInd (from_i, 0)) t sigma then
-              let args = unfold_args t sigma in
+              let args = all_args t sigma in
               let t' =
                 if List.length args = 0 then
                   mkInd (to_i, 0)
@@ -275,18 +258,17 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
             else if is_or_applies p t sigma then
               let t' =
                 let f = first_fun t sigma in
-                let args = all_but_last (unfold_args t sigma) in
-                let arg = last (unfold_args t sigma) in
-                reduce_term env (mkApp (f, Array.of_list (List.append args [arg]))) sigma
+                let args = all_args t sigma in
+                reduce_term env (mkApp (f, Array.of_list args)) sigma
               in sigma, mkProd (n, t', b')
             else
               sigma, mkProd (n, t, b')
          | _ ->
             let f = first_fun case_typ sigma in
-            let args = all_but_last (unfold_args case_typ sigma) in
-            let arg = last (unfold_args case_typ sigma) in
+            let args = all_but_last (all_args case_typ sigma) in
+            let arg = last (all_args case_typ sigma) in
             let ((_, i), _) = destConstruct sigma (first_fun arg sigma) in
-            let c_args = unfold_args arg sigma in
+            let c_args = all_args arg sigma in
             let swap_map = Array.of_list swap_map in
             let (_, lifted_constr) = swap_map.(i - 1) in
             let arg' = reduce_term env (mkApp (lifted_constr, Array.of_list c_args)) sigma in
@@ -301,7 +283,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
               Feedback.msg_notice (print env t' sigma);
               init (push_local (n, t') env) b (i + 1) from_i to_i swap_map sigma
             else if is_or_applies (mkInd (from_i, 0)) t sigma then
-              let args = unfold_args t sigma in
+              let args = all_args t sigma in
               let sigma, t' =
                 if List.length args = 0 then
                   sigma, mkInd (to_i, 0)
