@@ -64,8 +64,14 @@ let equal env trm1 trm2 sigma =
 (* --- Reduction --- *)
 
 (*
+ * Reduce/simplify a term
+ *)
+let reduce_term env trm sigma =
+  Reductionops.nf_betaiotazeta env sigma trm
+          
+(*
  * Infer the type, then reduce/simplify the result
  *)
 let reduce_type env trm sigma =
   let sigma, typ = Typing.type_of ~refresh:true env sigma trm in
-  sigma, Reductionops.nf_betaiotazeta env sigma typ
+  sigma, reduce_term env typ sigma

@@ -69,7 +69,20 @@ val equal :
   bool state (* stateful (t1 = t2) *)
 
 (* --- Reduction --- *)
-  
+
+(*
+ * Reduce/simplify a term
+ * This defaults to the following reduction rules in this case:
+ * 1. beta-reduction (applying functions to arguments)
+ * 2. iota-reduction (simplifying induction principle applications)
+ * 3. zeta-reduction (simplifying let expressions)
+ *)
+val reduce_term :
+  env -> (* environment *)
+  EConstr.t -> (* term *)
+  evar_map -> (* state *)
+  EConstr.t (* reduced term *)
+
 (*
  * Infer the type, then reduce/simplify the result
  *)

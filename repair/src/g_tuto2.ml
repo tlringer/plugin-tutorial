@@ -124,9 +124,6 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      in
      let open EConstr in
      let sigma, old_elim = type_eliminator env (fst (destInd sigma old_ind)) sigma in
-     let reduce_term env trm sigma =
-       Reductionops.nf_betaiotazeta env sigma trm
-     in
      (* TODO explain, move etc *)
      let initialize_dep_elim_cs env_dep_elim elim_p npms cs swap_map sigma =
        let swaps : (int * int) list =
