@@ -3,7 +3,9 @@
  * Utilities for the state monad were moved to stateutils.ml/stateutils.mli
  *)
 
-(* --- Environments and definitions --- *)
+open EConstr
+
+(* --- Environments --- *)
 
 (*
  * Environments in the Coq kernel map names (local and global variables)
@@ -20,6 +22,44 @@ let global_env () =
 (* Push a local binding to an environment *)
 let push_local (n, t) env =
   EConstr.push_rel Context.Rel.Declaration.(LocalAssum (n, t)) env
+
+(*
+ * Push all local bindings in a product type to an environment, until the
+ * conclusion is no longer a product type. Return the environment with all
+ * of the bindings, and the conclusion type.
+ *)
+let rec push_all_locals_prod env typ sigma =
+  match kind sigma typ with
+  | Constr.Prod (n, t, b) ->
+     push_all_locals_prod (push_local (n, t) env) b sigma
+  | _ ->
+     (env, typ)
+
+(*
+ * Like push_all_locals_prod, but for lambda terms
+ *)
+let rec push_all_locals_lambda env trm sigma =
+  match kind sigma trm with
+  | Constr.Lambda (n, t, b) ->
+     push_all_locals_lambda (push_local (n, t) env) b sigma
+  | _ ->
+     (env, trm)
+
+(*
+ * Like push_all_locals_lambda, but only push the first nargs locals
+ * If nargs is too large, then behave like push_all_locals_lambda
+ *)
+let rec push_n_locals_lambda nargs env trm sigma =
+  if nargs <= 0 then
+    (env, trm)
+  else
+    match kind sigma trm with
+    | Constr.Lambda (n, t, b) ->
+       push_n_locals_lambda (nargs - 1) (push_local (n, t) env) b sigma
+    | _ ->
+       env, trm
+
+(* --- Definitions --- *)
 
 (*
  * One of the coolest things about plugins is that you can use them

@@ -44,15 +44,6 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
      let sigma, new_ind = internalize env n sigma in
      let sigma, map = internalize env e sigma in
      (* TODO move me, comment, etc *)
-     let rec zoom_product_type env typ =
-       let open EConstr in
-       match kind sigma typ with
-       | Constr.Prod (n, t, b) ->
-          zoom_product_type (push_local (n, t) env) b
-       | _ ->
-          (env, typ)
-     in
-     (* TODO move me, comment, etc *)
      let unfold_args_app trm sigma =
        let open EConstr in
        let (f, args) = destApp sigma trm in
@@ -97,7 +88,7 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
          (fun i sigma ->
            let c_o = mkConstructU (((i_o, ii_o), i), u_o) in
            let sigma, c_o_typ = reduce_type env c_o sigma in
-           let env_c_o, c_o_typ = zoom_product_type env c_o_typ in
+           let env_c_o, c_o_typ = push_all_locals_prod env c_o_typ sigma in
            let nargs = nb_rel env_c_o - nb_rel env in
            let c_o_args = mk_n_rels nargs in
            let c_o_app = mkApp (c_o, c_o_args) in
@@ -171,10 +162,6 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
        reconstruct_lambda_n env b 0
      in
      (* TODO clean move etc *)
-     let zoom_env zoom env trm =
-       fst (zoom env trm)
-     in
-     (* TODO clean move etc *)
      let shift_by n trm sigma =
        EConstr.of_constr (Constr.liftn n 0 (EConstr.to_constr sigma trm))
      in
@@ -183,17 +170,8 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
        let sigma, typ = reduce_type env trm sigma in
        let curried_args = Array.to_list (mk_n_rels (arity typ sigma)) in
        sigma, reconstruct_lambda
-                (zoom_env zoom_product_type (Environ.empty_env) typ)
+                (fst (push_all_locals_prod (Environ.empty_env) typ sigma))
                 (mkApp (shift_by (List.length curried_args) trm sigma, Array.of_list curried_args))
-     in
-     (* TODO *)
-     let rec zoom_lambda_term env trm sigma =
-       let open EConstr in
-       match kind sigma trm with
-       | Constr.Lambda (n, t, b) ->
-          zoom_lambda_term (push_local (n, t) env) b sigma
-       | _ ->
-          (env, trm)
      in
      (* TODO *)
      let type_of_inductive index mutind_body =
@@ -226,18 +204,6 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
        | _ ->
           failwith "can't deconstruct eliminator; no final arguments"
      in
-     (* TODO *)
-     let rec zoom_n_lambda env npm typ sigma =
-       let open EConstr in
-       if npm = 0 then
-         (env, typ)
-       else
-         match kind sigma typ with
-         | Constr.Lambda (n1, t1, b1) ->
-            zoom_n_lambda (push_local (n1, t1) env) (npm - 1) b1 sigma
-         | _ ->
-            failwith "more parameters expected"
-     in
      (* TODO clean move etc *)
      let applies f trm sigma =
        let open EConstr in
@@ -253,10 +219,10 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
      let initialize_dep_elim_env env elim_rev from_i to_i sigma =
        let sigma, elim_rev_eta = expand_eta env elim_rev sigma in
        Feedback.msg_notice (print env elim_rev_eta sigma);
-       let env_elim_rev, elim_body_rev = zoom_lambda_term env elim_rev_eta sigma in
+       let env_elim_rev, elim_body_rev = push_all_locals_lambda env elim_rev_eta sigma in
        Feedback.msg_notice (print env_elim_rev elim_body_rev sigma);
        let sigma, elim_app_rev = deconstruct_eliminator env_elim_rev elim_body_rev from_i sigma in
-       let env, elim_rev = zoom_n_lambda env (List.length elim_app_rev.pms) elim_rev_eta sigma in
+       let env, elim_rev = push_n_locals_lambda (List.length elim_app_rev.pms) env elim_rev_eta sigma in
        Feedback.msg_notice (print env elim_rev sigma);
        let (p_n, p_typ, b) = destLambda sigma elim_rev in
        let rec init_p_typ env p_typ sigma =
@@ -353,7 +319,7 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
        Feedback.msg_notice (print env_dep_elim elim_eta sigma);
        let sigma, dep_elim =
          let npms =
-           let env_elim, elim_body = zoom_lambda_term env_dep_elim elim_eta sigma in
+           let env_elim, elim_body = push_all_locals_lambda env_dep_elim elim_eta sigma in
            let sigma, elim_app = deconstruct_eliminator env_elim elim_body from_i sigma in
            List.length elim_app.pms
          in
@@ -363,7 +329,7 @@ VERNAC COMMAND EXTEND SaveMap CLASSIFIED AS SIDEFF
          let elim_p = reduce_term env_dep_elim (mkAppl (elim_pms, [p])) sigma in
          let sigma, cs =
            let sigma, elim_eta = expand_eta env_dep_elim elim_p sigma in
-           let env_elim, elim_body = zoom_lambda_term env_dep_elim elim_eta sigma in
+           let env_elim, elim_body = push_all_locals_lambda env_dep_elim elim_eta sigma in
            let elim_body = reduce_term env_elim elim_body sigma in
            let sigma, elim_app = deconstruct_eliminator env_elim elim_body from_i sigma in
            initialize_dep_elim_cs env_dep_elim elim_p npms elim_app.cs swap_map sigma

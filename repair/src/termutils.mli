@@ -8,7 +8,7 @@ open Environ
 open Constrexpr
 open Stateutils
 
-(* --- Environments and definitions --- *)
+(* --- Environments --- *)
 
 (*
  * Environments in the Coq kernel map names (local and global variables)
@@ -25,6 +25,39 @@ val push_local :
   Names.Name.t Context.binder_annot * EConstr.t -> (* name, type *)
   env -> (* environment *)
   env (* updated environment *)
+
+(*
+ * Push all local bindings in a product type to an environment, until the
+ * conclusion is no longer a product type. Return the environment with all
+ * of the bindings, and the conclusion type.
+ *)
+val push_all_locals_prod :
+  env -> (* environment *)
+  EConstr.t -> (* product type *)
+  evar_map -> (* state *)
+  env * EConstr.t (* updated environment, and conclusion of the product type *)
+
+(*
+ * Like push_all_locals_prod, but for lambda terms
+ *)
+val push_all_locals_lambda :
+  env -> (* environment *)
+  EConstr.t -> (* lambda term *)
+  evar_map -> (* state *)
+  env * EConstr.t (* updated environment, and conclusion of the lambda term *)
+
+(*
+ * Like push_all_locals_lambda, but only push the first n locals
+ * If n is too large, then behave like push_all_locals_lambda
+ *)
+val push_n_locals_lambda :
+  int -> (* number of locals to push *)
+  env -> (* environment *)
+  EConstr.t -> (* lambda term *)
+  evar_map -> (* state *)
+  env * EConstr.t (* updated environment, and updated lambda term *)
+ 
+(* --- Definitions --- *)
 
 (*
  * One of the coolest things about plugins is that you can use them
