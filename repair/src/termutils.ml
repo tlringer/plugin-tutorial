@@ -119,6 +119,13 @@ let reduce_term env trm sigma =
   Reductionops.nf_betaiotazeta env sigma trm
 
 (*
+ * Infer the type, then normalize the result
+ *)
+let normalize_type env trm sigma =
+  let sigma, typ = Typing.type_of ~refresh:true env sigma trm in
+  sigma, normalize_term env typ sigma
+
+(*
  * Infer the type, then reduce/simplify the result
  *)
 let reduce_type env trm sigma =
@@ -174,7 +181,19 @@ let mkAppl (f, args) = mkApp (f, Array.of_list args)
  *)
 let apply_reduce reducer env f args sigma =
   reducer env (mkAppl (f, args)) sigma
-                     
+
+(*
+ * Get the arity of the function/product
+ *)
+let rec arity f sigma =
+  match kind sigma f with
+  | Constr.Lambda (_, _, b) ->
+     1 + arity b sigma
+  | Constr.Prod (_, _, b) ->
+     1 + arity b sigma
+  | _ ->
+     0
+
 (* --- Inductive Types --- *)
 
 (*

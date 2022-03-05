@@ -8,7 +8,6 @@ open Stateutils
 val get_swap_map :
   env -> (* environment *)
   EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
-  EConstr.t -> (* old_ind *)
   evar_map -> (* state *)
   ((EConstr.t * EConstr.t) list) state (* map from old to new constructors *)
 

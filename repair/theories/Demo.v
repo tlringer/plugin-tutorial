@@ -24,6 +24,9 @@ Proof.
   - apply New.cons; auto.
 Defined.
 
+Display Map f.
+
+(*
 Map new_list_rect Old.list New.list := f.
 
 Print new_list_rect.
@@ -49,7 +52,7 @@ Sub Old.list Old.nil Old.cons Old.list_rect with New.list New.nil New.cons new_l
   as app.
 
 Print app.
-
+*)
 
 (* TODO some proofs etc *)
 

@@ -14,9 +14,9 @@ let _ = Mltop.add_known_module __coq_plugin_name
  *)
 open Stdarg
 open Termutils
-open Stateutils
 open Exercise
 
+(* TODO move these etc *)
 type elim_app =
   {
     elim : EConstr.t;
@@ -25,29 +25,36 @@ type elim_app =
     cs : EConstr.t list;
     final_args : EConstr.t list;
   }
-
-
   
 let print env t sigma = Printer.pr_econstr_env env sigma t
 
 
-let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
-         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Map", 
-                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_ident), 
+let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
+         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Display", 
+                                     Vernacextend.TyTerminal ("Map", 
                                      Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                     Vernacextend.TyTerminal (":=", Vernacextend.TyNonTerminal (
-                                                                    Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                                                    Vernacextend.TyNil)))))), 
-         (let coqpp_body i o n e
-         () = Vernacextend.VtDefault (fun () -> 
-# 41 "src/g_tuto2.mlg"
+                                     Vernacextend.TyNil))), (let coqpp_body e
+                                                            () = Vernacextend.VtDefault (fun () -> 
+                                                                 
+# 39 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
-     let sigma, old_ind = internalize env o sigma in
-     let sigma, new_ind = internalize env n sigma in
      let sigma, map = internalize env e sigma in
-     let sigma, swap_map = get_swap_map env map old_ind sigma in
+     let sigma, swap_map = get_swap_map env map sigma in
+     Feedback.msg_notice
+       (Pp.seq
+          [Pp.str "This function maps: ";
+           Pp.prlist_with_sep
+             (fun _ -> Pp.str ", ")
+             (fun (c_o, c_n) ->
+               Pp.prlist_with_sep
+                 (fun _ -> Pp.str " <-> ")
+                 (Printer.pr_econstr_env env sigma)
+                 [c_o; c_n])
+             swap_map])
+    (* map_state
+    (fun (old_c, new_c) ->
+      Printer.pr_sequence)
      (* TODO print swap map --- move to another command --- show tests --- then move on *)
      (* TODO explain move etc *)
      let type_eliminator env ind sigma =
@@ -80,17 +87,6 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
             cs)
          (fun (_, cs) -> ret cs)
          sigma
-     in
-     (* TODO whatever *)
-     let rec arity p sigma =
-       let open EConstr in
-       match kind sigma p with
-       | Constr.Lambda (_, _, b) ->
-          1 + arity b sigma
-       | Constr.Prod (_, _, b) ->
-          1 + arity b sigma
-       | _ ->
-          0
      in
      (* TODO move etc *)
      let rec reconstruct_lambda_n env b i =
@@ -285,11 +281,10 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      in
      Feedback.msg_notice (print env old_elim sigma);
      Feedback.msg_notice (print env new_elim sigma);
-     define i new_elim sigma;
-     (* TODO define old and new eliminators *)
-     ()
+     define i new_elim sigma;*)
    
-              ) in fun i
-         o n e ?loc ~atts () -> coqpp_body i o n e
-         (Attributes.unsupported_attributes atts)), None))]
+                                                                 ) in fun e
+                                                            ?loc ~atts ()
+                                                            -> coqpp_body e
+                                                            (Attributes.unsupported_attributes atts)), None))]
 

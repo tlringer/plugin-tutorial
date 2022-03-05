@@ -3,7 +3,7 @@ open Termutils
 open Stateutils
 
 (* TODO move, explain, clean *)
-let pms_from_constructor_body env_c_body c_body sigma =
+let constructor_body_typ_args env_c_body c_body sigma =
   let sigma, c_body_typ = reduce_type env_c_body c_body sigma in
   sigma, all_args c_body_typ sigma
 
@@ -15,19 +15,34 @@ let constructor_body env c sigma =
   let nargs = nb_rel env_c_body - nb_rel env in
   sigma, (env_c_body, mkAppl (c, mk_n_args nargs))
 
+(* TODO move, explain, clean *)
+let inductives_from_map env map sigma =
+  let sigma, map_type = normalize_type env map sigma in
+  let rec get_inds env map_type sigma =
+    match kind sigma map_type with
+    | Constr.Prod (n, t, b) when isProd sigma b ->
+       get_inds (push_local (n, t) env) b sigma
+    | Constr.Prod (n, t, b) ->
+       (first_fun t sigma, first_fun b sigma)
+    | _ ->
+       CErrors.user_err
+         (Pp.str "Map function does not have type old_ind -> new_ind")
+  in sigma, get_inds env map_type sigma
+  
 (* TODO explain, clean *)
 let swap_constructor env f c sigma =
   let sigma, (env_c_body, c_body) = constructor_body env c sigma in
-  let sigma, pms = pms_from_constructor_body env_c_body c_body sigma in
-  let f_args = List.append pms [c_body] in
+  let sigma, typ_args = constructor_body_typ_args env_c_body c_body sigma in
+  let f_args = List.append typ_args [c_body] in
   let f_c = apply_reduce normalize_term env f f_args sigma in
   sigma, first_fun f_c sigma
 
 (* TODO make exercise, explain, clean *)
-let get_swap_map env f old_ind sigma =
+let get_swap_map env map sigma =
+  let sigma, (old_ind, _) = inductives_from_map env map sigma in
   map_constructors
     (fun old_c sigma ->
-      let sigma, new_c = swap_constructor env f old_c sigma in
+      let sigma, new_c = swap_constructor env map old_c sigma in
       sigma, (old_c, new_c))
     env
     (destInd sigma old_ind)

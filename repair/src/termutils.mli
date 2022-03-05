@@ -36,7 +36,7 @@ val push_all_locals_prod :
   EConstr.t -> (* product type *)
   evar_map -> (* state *)
   env * EConstr.t (* updated environment, and conclusion of the product type *)
-
+  
 (*
  * Like push_all_locals_prod, but for lambda terms
  *)
@@ -126,6 +126,15 @@ val reduce_term :
   EConstr.t (* reduced term *)
 
 (*
+ * Infer the type, then normalize the result
+ *)
+val normalize_type :
+  env -> (* environment *)
+  EConstr.t -> (* term *)
+  evar_map -> (* state *)
+  EConstr.t state (* stateful normalized type of term *)
+  
+(*
  * Infer the type, then reduce/simplify the result
  *)
 val reduce_type :
@@ -181,6 +190,14 @@ val apply_reduce :
   EConstr.t list -> (* args *)
   evar_map -> (* state *)
   EConstr.t (* reduced (mkAppl (f, args)) *)
+
+(*
+ * Get the arity (number of total possible arguments) of the function/product
+ *)
+val arity :
+  EConstr.t -> (* function/product *)
+  evar_map -> (* state *)
+  int (* arity of function/product *)
   
 (* --- Inductive Types --- *)
 
