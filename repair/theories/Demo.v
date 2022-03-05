@@ -37,15 +37,6 @@ Print app.
 
 Require Import Tuto1.Loader.
 
-Definition whatever := (fun (T : Type) (l m : Old.list T) =>
-    Old.list_rect
-      T
-      (fun _ => Old.list T -> Old.list T)
-      (fun _ => m)
-      (fun t l1 app_l1 _ => Old.cons T t (app_l1 m))   
-      l
-      m).
-
 Sub Old.list Old.nil Old.cons Old.list_rect with New.list New.nil New.cons new_list_rect in
   (fun (T : Type) (l m : Old.list T) =>
     Old.list_rect
@@ -62,6 +53,7 @@ Print app.
 
 (* TODO some proofs etc *)
 
+(* TODO try with larger inductive types etc, more swaps, to make sure *)
 
 
 (*

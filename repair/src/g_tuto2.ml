@@ -12,7 +12,6 @@ let _ = Mltop.add_known_module __coq_plugin_name
  *
  * As always, this will be discussion-based, with the usual format.
  *)
-(*open Pp*)
 open Stdarg
 open Termutils
 (*open Exercise*)
@@ -41,19 +40,12 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
                                                                     Vernacextend.TyNil)))))), 
          (let coqpp_body i o n e
          () = Vernacextend.VtDefault (fun () -> 
-# 41 "src/g_tuto2.mlg"
+# 40 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, old_ind = internalize env o sigma in
      let sigma, new_ind = internalize env n sigma in
      let sigma, map = internalize env e sigma in
-     (* TODO move me, comment, etc *)
-     let rec range (min : int) (max : int) : int list =
-       if min < max then
-         min :: range (min + 1) max
-       else
-         []
-     in
      (* TODO move me, comment, etc *)
      let rec zoom_product_type env typ =
        let open EConstr in
@@ -97,7 +89,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
      (* TODO mvoe, comment, etc *)
      let mk_n_rels n =
        let open EConstr in
-       Array.of_list (List.map mkRel (List.rev (range 1 (n + 1))))
+       Array.of_list (List.map mkRel (List.rev (Collections.range 1 (n + 1))))
      in
      (* TODO move me, comment, etc *)
      let get_swap_map env old_ind (f : EConstr.t) (sigma : Evd.evar_map) =
@@ -126,7 +118,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
            Feedback.msg_notice (print env (snd swap) sigma);
            Feedback.msg_notice (Pp.str ";");
            sigma, swap)
-         (range 1 (ncons + 1))
+         (Collections.range 1 (ncons + 1))
          sigma
      in
      let sigma, swap_map = get_swap_map env old_ind map sigma in
@@ -153,7 +145,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
          let cs_arr = Array.of_list cs in
          List.map
            (fun i -> cs_arr.(List.assoc i swaps - 1))
-           (range 1 (List.length cs + 1))
+           (Collections.range 1 (List.length cs + 1))
        in
        bind
          (fold_left_state
@@ -441,7 +433,7 @@ let () = Vernacextend.vernac_extend ~command:"SwapCases" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))))), 
          (let coqpp_body o n e i
          () = Vernacextend.VtDefault (fun () -> 
-# 435 "src/g_tuto2.mlg"
+# 427 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, old_ind = internalize env o sigma in

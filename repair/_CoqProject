@@ -4,6 +4,8 @@
 theories/Loader.v
 theories/Demo.v
 
+src/collections.mli
+src/collections.ml
 src/termutils.mli
 src/termutils.ml
 src/exercise.mli
