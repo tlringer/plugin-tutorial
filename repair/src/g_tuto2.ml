@@ -81,6 +81,11 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
        | _ ->
           trm
      in
+     (* TODO mvoe, comment, etc *)
+     let mk_n_rels n =
+       let open EConstr in
+       Array.of_list (List.map mkRel (List.rev (range 1 (n + 1))))
+     in
      (* TODO move me, comment, etc *)
      let get_swap_map env old_ind (f : EConstr.t) (sigma : Evd.evar_map) =
        let open EConstr in
@@ -97,7 +102,7 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
            let sigma, c_o_typ = reduce_type env c_o sigma in
            let env_c_o, c_o_typ = zoom_product_type env c_o_typ in
            let nargs = nb_rel env_c_o - nb_rel env in
-           let c_o_args = Array.of_list (List.map mkRel (List.rev (range 1 (nargs + 1)))) in
+           let c_o_args = mk_n_rels nargs in
            let c_o_app = mkApp (c_o, c_o_args) in
            let typ_args : EConstr.t list = unfold_args c_o_typ sigma in
            let c_o_lifted = mkApp (f, Array.of_list (List.append typ_args [c_o_app])) in
@@ -112,41 +117,26 @@ let () = Vernacextend.vernac_extend ~command:"SaveMap" ~classifier:(fun _ -> Ver
          sigma
      in
      let sigma, swap_map = get_swap_map env old_ind map sigma in
-     (*
-      * TODO: invert map, define inverted function,
-      * save both directions to a table
-      *)
+     (* TODO explain move etc *)
+     let type_eliminator env ind sigma =
+       Evd.fresh_global env sigma (Indrec.lookup_eliminator env ind Sorts.InType)
+     in
+     let open EConstr in
+     let sigma, old_elim = type_eliminator env (fst (destInd sigma old_ind)) sigma in
+     let sigma, new_elim =
+       let sigma, new_elim_old = type_eliminator env (fst (destInd sigma new_ind)) sigma in
+       (* TODO swap cases *)
+       sigma, new_elim_old
+     in
+     let print env t sigma = Printer.pr_econstr_env env sigma t in
+     Feedback.msg_notice (print env old_elim sigma);
+     Feedback.msg_notice (print env new_elim sigma);
+     (* TODO define old and new eliminators, save configuration to table *)
      ()
    
               ) in fun o
          n e ?loc ~atts () -> coqpp_body o n e
          (Attributes.unsupported_attributes atts)), None))]
-
-let () = Vernacextend.vernac_extend ~command:"ConfigureSwap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
-         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Configure", 
-                                     Vernacextend.TyTerminal ("Swap", 
-                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_constr), 
-                                     Vernacextend.TyNil)))), (let coqpp_body o
-                                                             n
-                                                             () = Vernacextend.VtDefault (fun () -> 
-                                                                  
-# 129 "src/g_tuto2.mlg"
-    
-     let sigma, env = global_env () in
-     let sigma, old_ind = internalize env o sigma in
-     let sigma, new_ind = internalize env n sigma in
-     (*
-      * TODO: retrieve map, define old and new constructors,
-      * define old and new eliminators, save configuration
-      *)
-     ()
-   
-                                                                  ) in fun o
-                                                             n ?loc ~atts ()
-                                                             -> coqpp_body o
-                                                             n
-                                                             (Attributes.unsupported_attributes atts)), None))]
 
 let () = Vernacextend.vernac_extend ~command:"SwapCases" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
          [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Swap", 
@@ -160,7 +150,7 @@ let () = Vernacextend.vernac_extend ~command:"SwapCases" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))))), 
          (let coqpp_body o n e i
          () = Vernacextend.VtDefault (fun () -> 
-# 150 "src/g_tuto2.mlg"
+# 145 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, old_ind = internalize env o sigma in

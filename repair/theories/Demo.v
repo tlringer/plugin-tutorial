@@ -27,10 +27,6 @@ Defined.
 Map Old.list New.list := f.
 
 (*
- * TODO explain and test the configure swap command
- *)
-
-(*
  * TODO test composing with the sub command
  *)
 
