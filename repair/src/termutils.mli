@@ -104,6 +104,15 @@ val equal :
 (* --- Reduction --- *)
 
 (*
+ * Fully normalize a term (apply all possible reduction rules)
+ *)
+val normalize_term :
+  env -> (* environment *)
+  EConstr.t -> (* term *)
+  evar_map -> (* state *)
+  EConstr.t (* normalized term *)
+  
+(*
  * Reduce/simplify a term
  * This defaults to the following reduction rules in this case:
  * 1. beta-reduction (applying functions to arguments)
@@ -162,10 +171,21 @@ val mkAppl :
   (EConstr.t * EConstr.t list) -> (* (f, args) *)
   EConstr.t (* mkApp (f, Array.of_list args) *)
 
+(*
+ * Apply f to args, then reduce the result using the supplied reduction function
+ *)
+val apply_reduce :
+  (env -> EConstr.t -> evar_map -> EConstr.t) -> (* reduction function *)
+  env -> (* environment *)
+  EConstr.t -> (* f *)
+  EConstr.t list -> (* args *)
+  evar_map -> (* state *)
+  EConstr.t (* reduced (mkAppl (f, args)) *)
+  
 (* --- Inductive Types --- *)
 
 (*
- * Map a function f on all constructors of inductive type ind.
+ * Map a function f on the constructors of inductive type ind.
  * Note that this does not handle mutually inductive types.
  *)
 val map_constructors :

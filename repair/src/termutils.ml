@@ -107,11 +107,17 @@ let equal env trm1 trm2 sigma =
 (* --- Reduction --- *)
 
 (*
+ * Fully normalize a term (apply all possible reduction rules)
+ *)
+let normalize_term env trm sigma =
+  Reductionops.nf_all env sigma trm
+
+(*
  * Reduce/simplify a term
  *)
 let reduce_term env trm sigma =
   Reductionops.nf_betaiotazeta env sigma trm
-          
+
 (*
  * Infer the type, then reduce/simplify the result
  *)
@@ -163,17 +169,22 @@ let mk_n_args n =
  *)
 let mkAppl (f, args) = mkApp (f, Array.of_list args)
 
+(*
+ * Apply, then reduce
+ *)
+let apply_reduce reducer env f args sigma =
+  reducer env (mkAppl (f, args)) sigma
+                     
 (* --- Inductive Types --- *)
 
 (*
- * Map a function f on all constructors of inductive type ind.
- * Note that this does not handle mutually inductive types.
- *)
+ * Map a function f on the bodies (conclusions) of all constructors of
+ inductive type ind. *)
 let map_constructors f env ind =
-  let m = lookup_mind (fst (fst ind)) env in
-  let b = m.mind_packets.(0) in
-  let cs = b.mind_consnames in
-  let ncons = Array.length cs in
+  let m_o = lookup_mind (fst (fst ind)) env in
+  let b_o = m_o.mind_packets.(0) in
+  let cs_o = b_o.mind_consnames in
+  let ncons = Array.length cs_o in
   map_state
     (fun i -> f (mkConstructU ((fst ind, i), snd ind)))
     (Collections.range 1 (ncons + 1))
