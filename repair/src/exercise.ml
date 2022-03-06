@@ -62,32 +62,6 @@ let get_swap_map env map sigma =
 let index_of_constructor c sigma =
   snd (fst (destConstruct sigma c))
 
-(* TODO move etc *)
-let rec reconstruct_lambda_n env b i =
-  let open Environ in
-  if nb_rel env = i then
-    b
-  else
-    let (n, _, t) = Context.Rel.Declaration.to_tuple @@ lookup_rel 1 env in
-    let env' = pop_rel_context 1 env in
-    reconstruct_lambda_n env' (mkLambda (n, (EConstr.of_constr t), b)) i
-
-(* TODO move etc *)
-let reconstruct_lambda env b =
-  reconstruct_lambda_n env b 0
-
-(* TODO clean move etc *)
-let shift_by n trm sigma =
-  EConstr.of_constr (Constr.liftn n 0 (EConstr.to_constr sigma trm))
-
-(* TODO clean move etc *)
-let expand_eta env trm sigma =
-  let sigma, typ = reduce_type env trm sigma in
-  let curried_args = mk_n_args (arity typ sigma) in
-  sigma, reconstruct_lambda
-           (fst (push_all_locals_prod (Environ.empty_env) typ sigma))
-           (mkAppl (shift_by (List.length curried_args) trm sigma, curried_args))
-
 (* TODO *)
 let type_of_inductive index mutind_body =
   let open Declarations in
@@ -147,7 +121,7 @@ let all_but_last (l : 'a list) : 'a list =
   List.rev (List.tl (List.rev l))
   
  (* TODO make exercise, explain, clean *)
-let get_swapped_induction_principles env map sigma =
+let get_induction_map env map sigma =
   let sigma, swap_map = get_swap_map env map sigma in
   let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
   let sigma, old_ips = induction_principles env (destInd sigma old_ind) sigma in
@@ -230,7 +204,7 @@ let get_swapped_induction_principles env map sigma =
     let cs = lift_cases new_ip_app.cs sigma in
     let args = new_ip_p_pms_app.final_args in
     let new_ip_p_pms_cs_args = mkAppl (new_ip_p_pms, List.append cs args) in
-    sigma, reconstruct_lambda_n env_lifted new_ip_p_pms_cs_args (nb_rel env)
+    sigma, snd (reconstruct_lambda_n (nb_rel env) env_lifted new_ip_p_pms_cs_args)
   in
   let sigma, new_ips = induction_principles env (destInd sigma new_ind) sigma in
   let sigma, lifted_ips =

@@ -61,7 +61,7 @@ let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> V
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
-     let sigma, ip_map = get_swapped_induction_principles env map sigma in
+     let sigma, ip_map = get_induction_map env map sigma in
      List.iter2
        (fun (_, ip) suffix ->
          let prefix = Names.Id.to_string i in
@@ -91,7 +91,7 @@ let () = Vernacextend.vernac_extend ~command:"Swap" ~classifier:(fun _ -> Vernac
      let sigma, trm = internalize env e sigma in
      let sigma, typ_map = inductives_from_map env map sigma in
      let sigma, swap_map = get_swap_map env map sigma in
-     let sigma, ip_map = get_swapped_induction_principles env map sigma in
+     let sigma, ip_map = get_induction_map env map sigma in
      let sigma, swapped =
        fold_left_state
          (fun subbed (src, dst) sigma ->

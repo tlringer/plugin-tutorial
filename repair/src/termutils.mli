@@ -82,7 +82,25 @@ val push_n_locals_lambda :
   EConstr.t -> (* lambda term *)
   evar_map -> (* state *)
   env * EConstr.t (* updated environment, and updated lambda term *)
- 
+
+(*
+ * Reconstruct a lambda term from an environment, removing those bindings
+ * from the environment. Stop when there are n bindings left in the environment.
+ *)
+val reconstruct_lambda_n :
+  int -> (* number of locals that should be left in the env at the end *)
+  env -> (* environment *)
+  EConstr.t -> (* body of the lambda to construct *)
+  env * EConstr.t (* updated environment, and the resulting lambda term *)
+
+(*
+ * Reconstruct a lambda from an environment, popping all local variables
+ *)
+val reconstruct_lambda :
+  env -> (* environment *)
+  EConstr.t -> (* body of the lambda to construct *)
+  env * EConstr.t (* updated environment, and the resulting lambda term *)
+
 (* --- Definitions --- *)
 
 (*
@@ -178,7 +196,7 @@ val reduce_type :
   EConstr.t -> (* term *)
   evar_map -> (* state *)
   EConstr.t state (* stateful reduced type of term *)
-
+  
 (* --- Functions and Application --- *)
 
 (*
@@ -234,7 +252,18 @@ val arity :
   EConstr.t -> (* function/product *)
   evar_map -> (* state *)
   int (* arity of function/product *)
-  
+
+(*
+ * Expand a partially applied curried function to take all arguments
+ * explicitly. For example, (add 0) becomes (fun n => add 0 n).
+ * This is known as eta-expansion.
+ *)
+val expand_eta :
+  env -> (* environment *)
+  EConstr.t -> (* term *)
+  evar_map -> (* state *)
+  EConstr.t state (* stateful eta-expanded term *)
+
 (* --- Inductive Types --- *)
 
 (*

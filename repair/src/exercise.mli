@@ -23,7 +23,7 @@ val get_swap_map :
 (*
  * TODO explain etc
  *)
-val get_swapped_induction_principles :
+val get_induction_map :
   env -> (* environment *)
   EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
   evar_map -> (* state *)

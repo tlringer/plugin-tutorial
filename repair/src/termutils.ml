@@ -78,6 +78,21 @@ let rec push_n_locals_lambda nargs env trm sigma =
     | _ ->
        env, trm
 
+(*
+ * Reconstruct a lambda term from an environment, removing those bindings
+ * from the environment. Stop when there are n bindings left in the environment.
+ *)
+let rec reconstruct_lambda_n i env b =
+  if nb_rel env = i then
+    env, b
+  else
+    let (n, _, t) = Context.Rel.Declaration.to_tuple @@ lookup_rel 1 env in
+    let env' = pop_rel_context 1 env in
+    reconstruct_lambda_n i env' (mkLambda (n, (EConstr.of_constr t), b))
+
+(* Reconstruct a lambda from an environment, popping all local variables *)
+let reconstruct_lambda = reconstruct_lambda_n 0
+
 (* --- Definitions --- *)
 
 (*
@@ -170,7 +185,7 @@ let normalize_type env trm sigma =
 let reduce_type env trm sigma =
   let sigma, typ = Typing.type_of ~refresh:true env sigma trm in
   sigma, reduce_term env typ sigma
-
+  
 (* --- Functions and Application --- *)
 
 (*
@@ -232,6 +247,23 @@ let rec arity f sigma =
      1 + arity b sigma
   | _ ->
      0
+
+(*
+ * Expand a partially applied curried function to take all arguments
+ * explicitly. For example, (add 0) becomes (fun n => add 0 n).
+ * This is known as eta-expansion.
+ *)
+let expand_eta env trm sigma =
+  let shift_by n trm sigma =
+    EConstr.of_constr (Constr.liftn n 0 (EConstr.to_constr sigma trm))
+  in
+  let sigma, typ = reduce_type env trm sigma in
+  let curried_args = mk_n_args (arity typ sigma) in
+  let _, expanded =
+    reconstruct_lambda
+      (fst (push_all_locals_prod (Environ.empty_env) typ sigma))
+      (mkAppl (shift_by (List.length curried_args) trm sigma, curried_args))
+  in sigma, expanded
 
 (* --- Inductive Types --- *)
 
