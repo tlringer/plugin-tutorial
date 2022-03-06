@@ -231,9 +231,13 @@ let mkAppl (f, args) = mkApp (f, Array.of_list args)
 
 (*
  * Apply, then reduce
+ * If args are empty, then return f
  *)
 let apply_reduce reducer env f args sigma =
-  reducer env (mkAppl (f, args)) sigma
+  if List.length args = 0 then
+    f
+  else
+    reducer env (mkAppl (f, args)) sigma
 
 (*
  * Get the arity of the function/product
@@ -263,3 +267,28 @@ let expand_eta env trm sigma =
       (fst (push_all_locals_prod (Environ.empty_env) typ sigma))
       (mkAppl (shift_by (List.length curried_args) trm sigma, curried_args))
   in sigma, expanded
+
+(*
+ * Return true if f is exactly the same as (syntactically) the first
+ * function inside of term, and term is an application.
+ *)
+let applies f trm sigma =
+  match kind sigma trm with
+  | Constr.App (g, _) ->
+     Constr.equal (EConstr.to_constr sigma f) (EConstr.to_constr sigma g)
+  | _ ->
+     false
+
+(*
+ * Check if trm' is exactly the same as (syntactically) the first
+ * function inside of trm and trm is an application, or if trm' and trm
+ * are equal to each other.
+ *
+ * If true, return Some list containing all arguments args to trm' (empty if
+ * trm is exactly trm') such that trm' args = trm. Otherwise, return None.
+ *)
+let is_or_applies trm' trm sigma =
+  let can_unify =
+    applies trm' trm sigma ||
+    Constr.equal (EConstr.to_constr sigma trm') (EConstr.to_constr sigma trm)
+  in if can_unify then Some (all_args trm sigma) else None

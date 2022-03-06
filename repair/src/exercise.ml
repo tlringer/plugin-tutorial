@@ -59,19 +59,7 @@ let get_swap_map env map sigma =
 (* TODO move, clean, etc *)
 let index_of_constructor c sigma =
   snd (fst (destConstruct sigma c))
-    
-(* TODO clean move etc *)
-let applies f trm sigma =
-  match kind sigma trm with
-  | Constr.App (g, _) ->
-     Constr.equal (EConstr.to_constr sigma f) (EConstr.to_constr sigma g)
-  | _ ->
-     false
 
-(* TODO *)
-let is_or_applies trm' trm sigma =
-  applies trm' trm sigma || Constr.equal (EConstr.to_constr sigma trm') (EConstr.to_constr sigma trm)
-  
  (* TODO make exercise, explain, clean *)
 let get_induction_map env map sigma =
   let sigma, swap_map = get_swap_map env map sigma in
@@ -87,12 +75,10 @@ let get_induction_map env map sigma =
   in
   (* TODO *)
   let lift_inductive t sigma =
-    if is_or_applies old_ind t sigma then
-      let args = all_args t sigma in
-      if List.length args = 0 then
-        new_ind
-      else
-        reduce_term env (mkAppl (new_ind, args)) sigma
+    let args_o = is_or_applies old_ind t sigma in
+    if Option.has_some args_o then
+      let args = Option.get args_o in
+      apply_reduce reduce_term env new_ind args sigma
     else
       t
   in

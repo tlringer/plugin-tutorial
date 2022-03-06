@@ -236,6 +236,7 @@ val mkAppl :
 
 (*
  * Apply f to args, then reduce the result using the supplied reduction function
+ * If args are empty, just return f
  *)
 val apply_reduce :
   (env -> EConstr.t -> evar_map -> EConstr.t) -> (* reduction function *)
@@ -243,7 +244,7 @@ val apply_reduce :
   EConstr.t -> (* f *)
   EConstr.t list -> (* args *)
   evar_map -> (* state *)
-  EConstr.t (* reduced (mkAppl (f, args)) *)
+  EConstr.t (* reduced (f args), or f is args is empty *)
 
 (*
  * Get the arity (number of total possible arguments) of the function/product
@@ -264,3 +265,16 @@ val expand_eta :
   evar_map -> (* state *)
   EConstr.t state (* stateful eta-expanded term *)
 
+(*
+ * Check  if the second term is either exactly (syntactically)
+ * the same as the first term, or if the second term applies the first
+ * term exactly to some arguments. 
+ *
+ * If true, return Some list containing all arguments args to trm' (empty if
+ * trm is exactly trm') such that trm' args = trm. Otherwise, return None.
+ *)
+val is_or_applies :
+  EConstr.t -> (* trm' *)
+  EConstr.t -> (* trm *)
+  evar_map -> (* state *)
+  (EConstr.t list) option (* Some args or None *)
