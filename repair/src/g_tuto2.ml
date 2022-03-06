@@ -17,9 +17,6 @@ open Termutils
 open Exercise
 open Stateutils
 
-(* TODO move etc *)
-let print env t sigma = Printer.pr_econstr_env env sigma t
-
 
 
 let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -29,7 +26,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
                                      Vernacextend.TyNil))), (let coqpp_body e
                                                             () = Vernacextend.VtDefault (fun () -> 
                                                                  
-# 32 "src/g_tuto2.mlg"
+# 29 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -42,7 +39,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
              (fun (c_o, c_n) ->
                Pp.prlist_with_sep
                  (fun _ -> Pp.str " <-> ")
-                 (Printer.pr_econstr_env env sigma)
+                 (fun t -> print env t sigma)
                  [c_o; c_n])
              swap_map])
    
@@ -60,7 +57,7 @@ let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i e
          () = Vernacextend.VtDefault (fun () -> 
-# 56 "src/g_tuto2.mlg"
+# 53 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -87,7 +84,7 @@ let () = Vernacextend.vernac_extend ~command:"Swap" ~classifier:(fun _ -> Vernac
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i f e
          () = Vernacextend.VtDefault (fun () -> 
-# 81 "src/g_tuto2.mlg"
+# 78 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env f sigma in

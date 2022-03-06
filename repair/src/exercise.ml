@@ -241,19 +241,23 @@ let get_swapped_induction_principles env map sigma =
   in sigma, List.combine old_ips lifted_ips
 
 (*
- * TODO use one of Coq's maps or folds instead if possible
- *
  * Substitute all occurrences of terms equal to src in trm with dst.
  * Make some simplifying assumptions about the format of trm
  * (no pattern matching, no fixpoints, not lets, and so on).
  *
- * HINT 1: You will want to use the mkLambda, mkProd, and mkApp functions 
- * defined in EConstr: https://github.com/coq/coq/blob/v8.14/engine/eConstr.mli
+ * This is an implementation that I wrote for the problem in the first
+ * tutorial. The only difference is that I've extended it to handle casts,
+ * since those show up in many simple test cases. I'm adding a couple of other
+ * cases that are common but fairly straightforward. I haven't extended
+ * it to handle some other cases that have a lot of complexities involved,
+ * though, like fixpoints and recursively lifted constants.
  *
- * HINT 2: If you are totally stuck, try copying and pasting the body of
- * each case of count, then adapting it to return the substituted term
- * instead of a number. The function will have almost exactly the same
- * structure.
+ * NOTE: In real life, it's common to use a higher-order function to map
+ * over terms, since this pattern occurs frequently. This is more supportive,
+ * but I didn't port any of mine here. This means we still have some limitations
+ * to the terms we'll support. Nonetheless, you can find my higher-order
+ * functions here, if interested:
+ * https://github.com/uwplse/coq-plugin-lib/blob/master/src/coq/logicutils/hofs
  *)
 let rec sub env (src, dst) trm sigma =
   let sigma, is_eq = equal env src trm sigma in
@@ -262,10 +266,6 @@ let rec sub env (src, dst) trm sigma =
     sigma, dst
   else
     match kind sigma trm with
-    | Constr.Cast (b, k, t) ->
-       let sigma, sub_b = sub env (src, dst) b sigma in
-       let sigma, sub_t = sub env (src, dst) t sigma in
-       sigma, mkCast (sub_b, k, sub_t)
     | Constr.Lambda (n, t, b) ->
        (* sub (fun (n : t) => b) := fun (n : sub t) => sub b *)
        let sigma, sub_t = sub env (src, dst) t sigma in
@@ -285,11 +285,17 @@ let rec sub env (src, dst) trm sigma =
            args
            sigma
        in sigma, mkApp (sub_f, sub_args)
-   (* | Constr.Const _ ->
-       (* note caveat about not defining a new constant *)
-       let body = unwrap_definition env trm sigma in
-       Feedback.msg_notice (Printer.pr_econstr_env env sigma body);
-       sub env (src, dst) body sigma *)
+    | Constr.Cast (b, k, t) ->
+       (* sub (b : t) := ((sub b) : (sub t)) *)
+       let sigma, sub_b = sub env (src, dst) b sigma in
+       let sigma, sub_t = sub env (src, dst) t sigma in
+       sigma, mkCast (sub_b, k, sub_t)
+    | Constr.LetIn (n, trm, typ, e) ->
+       (* ... honestly, I always get confused which term is which in let *)
+       let sigma, sub_trm = sub env (src, dst) trm sigma in
+       let sigma, sub_typ = sub env (src, dst) typ sigma in
+       let sigma, sub_e = sub (push_let_in (n, e, typ) env) (src, dst) e sigma in
+       sigma, mkLetIn (n, sub_trm, sub_typ, sub_e)
     | _ ->
        (* otherwise, return trm *)
        sigma, trm

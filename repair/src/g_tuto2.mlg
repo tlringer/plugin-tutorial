@@ -15,9 +15,6 @@ open Termutils
 open Exercise
 open Stateutils
 
-(* TODO move etc *)
-let print env t sigma = Printer.pr_econstr_env env sigma t
-
 }
 
 (*** TODO ***)
@@ -41,7 +38,7 @@ VERNAC COMMAND EXTEND DisplayMap CLASSIFIED AS SIDEFF
              (fun (c_o, c_n) ->
                Pp.prlist_with_sep
                  (fun _ -> Pp.str " <-> ")
-                 (Printer.pr_econstr_env env sigma)
+                 (fun t -> print env t sigma)
                  [c_o; c_n])
              swap_map])
    }

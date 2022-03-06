@@ -8,6 +8,26 @@ open Environ
 open Constrexpr
 open Stateutils
 
+(* --- Debugging --- *)
+
+(*
+ * A convenient function for printing terms
+ *)
+val print :
+  env -> (* environment *)
+  EConstr.t -> (* term *)
+  evar_map -> (* state *)
+  Pp.t (* Coq printing object, to use with Feedback.msg_notice and so on *)
+
+(*
+ * Same as above, but output to Coq rather than returning a Pp.t object
+ *)
+val print_message :
+  env -> (* environment *)
+  EConstr.t -> (* term *)
+  evar_map -> (* state *)
+  unit
+ 
 (* --- Environments --- *)
 
 (*
@@ -22,10 +42,16 @@ val global_env : unit -> env state
 
 (* Push a local binding to an environment *)
 val push_local :
-  Names.Name.t Context.binder_annot * EConstr.t -> (* name, type *)
+  Names.Name.t Context.binder_annot * EConstr.t -> (* id, typ *)
   env -> (* environment *)
   env (* updated environment *)
 
+(* Push a let expression *)
+val push_let_in :
+  Names.Name.t Context.binder_annot * EConstr.t * EConstr.t -> (*id, trm, typ*)
+  env -> (* environment *)
+  env (* updated environment *)
+  
 (*
  * Push all local bindings in a product type to an environment, until the
  * conclusion is no longer a product type. Return the environment with all

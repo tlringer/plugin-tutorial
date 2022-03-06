@@ -8,6 +8,18 @@ open Declarations
 open Environ
 open Stateutils
 
+(* --- Debugging --- *)
+
+(*
+ * A convenient function for printing terms
+ *)
+let print env t sigma = Printer.pr_econstr_env env sigma t
+
+(*
+ * Same as above, but output to Coq rather than returning a Pp.t object
+ *)
+let print_message env t sigma = Feedback.msg_notice (print env t sigma) 
+
 (* --- Environments --- *)
 
 (*
@@ -26,6 +38,10 @@ let global_env () =
 let push_local (n, t) env =
   EConstr.push_rel Context.Rel.Declaration.(LocalAssum (n, t)) env
 
+(* Push a let-in definition to an environment *)
+let push_let_in (n, e, t) env =
+  EConstr.push_rel Context.Rel.Declaration.(LocalDef(n, e, t)) env
+  
 (*
  * Push all local bindings in a product type to an environment, until the
  * conclusion is no longer a product type. Return the environment with all
