@@ -20,6 +20,28 @@ open Stateutils
 (*** TODO ***)
 
 (*
+ * TODO explain
+ *
+ * TODO exercise
+ *)
+VERNAC COMMAND EXTEND DisplayInductives CLASSIFIED AS SIDEFF
+| [ "Display" "Inductives" constr(e) ] ->
+   {
+     let sigma, env = global_env () in
+     let sigma, map = internalize env e sigma in
+     let sigma, inds = inductives_from_map env map sigma in
+     Feedback.msg_notice
+       (Pp.seq
+          [Pp.str "This function maps: ";
+           print env (fst inds) sigma;
+           Pp.str " -> ";
+           print env (snd inds) sigma])
+   }
+END
+
+(*** TODO ***)
+
+(*
  * TODO explain, break down into smaller problems
  *
  * TODO exercise
@@ -37,7 +59,7 @@ VERNAC COMMAND EXTEND DisplayMap CLASSIFIED AS SIDEFF
              (fun _ -> Pp.str ", ")
              (fun (c_o, c_n) ->
                Pp.prlist_with_sep
-                 (fun _ -> Pp.str " <-> ")
+                 (fun _ -> Pp.str " -> ")
                  (fun t -> print env t sigma)
                  [c_o; c_n])
              swap_map])
@@ -112,6 +134,10 @@ END
  * Error checking
  *
  * Supporting constants
+ *
+ * Reverse direction lifting
+ *
+ * Inverting function
  *
  * Proof production (section & retraction)
  *

@@ -12,6 +12,20 @@ type elim_app =
     final_args : EConstr.t list;
   }
 
+(* TODO make exercise, move, explain, clean *)
+let inductives_from_map env map sigma =
+  let sigma, map_type = normalize_type env map sigma in
+  let rec get_inds env map_type sigma =
+    match kind sigma map_type with
+    | Constr.Prod (n, t, b) when isProd sigma b ->
+       get_inds (push_local (n, t) env) b sigma
+    | Constr.Prod (n, t, b) ->
+       (first_fun t sigma, first_fun b sigma)
+    | _ ->
+       CErrors.user_err
+         (Pp.str "Map function does not have type old_ind -> new_ind")
+  in sigma, get_inds env map_type sigma
+
 (* TODO move, explain, clean *)
 let constructor_body_typ_args env_c_body c_body sigma =
   let sigma, c_body_typ = reduce_type env_c_body c_body sigma in
@@ -25,20 +39,6 @@ let constructor_body env c sigma =
   let nargs = nb_rel env_c_body - nb_rel env in
   sigma, (env_c_body, mkAppl (c, mk_n_args nargs))
 
-(* TODO move, explain, clean *)
-let inductives_from_map env map sigma =
-  let sigma, map_type = normalize_type env map sigma in
-  let rec get_inds env map_type sigma =
-    match kind sigma map_type with
-    | Constr.Prod (n, t, b) when isProd sigma b ->
-       get_inds (push_local (n, t) env) b sigma
-    | Constr.Prod (n, t, b) ->
-       (first_fun t sigma, first_fun b sigma)
-    | _ ->
-       CErrors.user_err
-         (Pp.str "Map function does not have type old_ind -> new_ind")
-  in sigma, get_inds env map_type sigma
-  
 (* TODO explain, clean *)
 let swap_constructor env f c sigma =
   let sigma, (env_c_body, c_body) = constructor_body env c sigma in

@@ -37,6 +37,9 @@ Proof.
   - apply consH; auto.
 Defined.
 
+Display Inductives f.
+Display Inductives g.
+
 Display Map g.
 
 Define Map new_vect := g.
