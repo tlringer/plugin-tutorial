@@ -62,8 +62,14 @@ let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> V
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
-     let sigma, swapped_induction = get_swapped_induction env map sigma in 
-     define i swapped_induction sigma
+     let sigma, swapped_ips = get_swapped_induction_principles env map sigma in
+     List.iter2
+       (fun ip suffix ->
+         let prefix = Names.Id.to_string i in
+         let id = Names.Id.of_string (String.concat "_" [prefix; suffix]) in
+         define id ip sigma)
+       swapped_ips
+       ["ind"; "rec"; "rect"] 
    
               ) in fun i
          e ?loc ~atts () -> coqpp_body i e

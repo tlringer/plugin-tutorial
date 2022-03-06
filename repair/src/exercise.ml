@@ -59,14 +59,10 @@ let get_swap_map env map sigma =
     sigma
 
  (* TODO make exercise, explain, clean *)
-let get_swapped_induction env map sigma =
+let get_swapped_induction_principles env map sigma =
   let sigma, swap_map = get_swap_map env map sigma in
   let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
-  let type_eliminator env ind sigma =
-    Evd.fresh_global env sigma (Indrec.lookup_eliminator env ind Sorts.InType)
-  in
-  let open EConstr in
-  let sigma, old_elim = type_eliminator env (fst (destInd sigma old_ind)) sigma in
+  let sigma, elims = induction_principles env (destInd sigma old_ind) sigma in
   (* TODO explain, move etc *)
   let initialize_dep_elim_cs env_dep_elim elim_p npms cs swap_map sigma =
     let swaps : (int * int) list =
@@ -270,10 +266,16 @@ let get_swapped_induction env map sigma =
          sigma, reduce_term env_dep_elim (mkAppl (elim_cs, final_args)) sigma
        in sigma, reconstruct_lambda_n env_dep_elim dep_elim (nb_rel env)
      in
-     let sigma, new_elim_old = type_eliminator env (fst (destInd sigma new_ind)) sigma in
-     let (from_i, _) = fst (destInd sigma old_ind) in
-     let (to_i, _) = fst (destInd sigma new_ind) in
-     initialize_dep_elim env old_elim new_elim_old from_i to_i sigma
+     let sigma, new_elims = induction_principles env (destInd sigma new_ind) sigma in
+     map_state
+       (fun (old_elim, new_elim_old) sigma ->
+         
+         let (from_i, _) = fst (destInd sigma old_ind) in
+         let (to_i, _) = fst (destInd sigma new_ind) in
+         initialize_dep_elim env old_elim new_elim_old from_i to_i sigma
+       )
+       (List.combine elims new_elims)
+       sigma
 
 (*
  * Substitute all occurrences of terms equal to src in trm with dst.

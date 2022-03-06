@@ -26,7 +26,7 @@ Defined.
 
 Display Map f.
 
-Define Map new_list_rect := f.
+Define Map new_list := f.
 
 Print new_list_rect.
 

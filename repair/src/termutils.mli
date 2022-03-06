@@ -202,12 +202,21 @@ val arity :
 (* --- Inductive Types --- *)
 
 (*
- * Map a function f on the constructors of inductive type ind.
+ * Map a function f on the constructors of inductive type T.
  * Note that this does not handle mutually inductive types.
  *)
 val map_constructors :
   (EConstr.t -> evar_map -> 'a state) -> (* f *)
   env -> (* environment *)
-  Names.Ind.t * EConstr.EInstance.t -> (* ind *)
+  Names.Ind.t * EConstr.EInstance.t -> (* T *)
   evar_map -> (* state *)
-  ('a list) state (* stateful (map f (constructors ind)) *)
+  ('a list) state (* (map f (constructors T)) *)
+
+(*
+ * Get the induction principles from an inductive type T
+ *)
+val induction_principles :
+  env -> (* environment *)
+  Names.Ind.t * EConstr.EInstance.t -> (* T *)
+  evar_map -> (* state *)
+  (EConstr.t list) state (* list of induction principles *)

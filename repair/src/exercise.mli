@@ -14,11 +14,11 @@ val get_swap_map :
 (*
  * TODO explain etc
  *)
-val get_swapped_induction :
+val get_swapped_induction_principles :
   env -> (* environment *)
   EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
   evar_map -> (* state *)
-  EConstr.t state (* swapped induction principle over new_ind *)
+  (EConstr.t list) state (* swapped induction principles over new_ind *)
   
 (*
  * Substitute all occurrences of terms equal to src in trm with dst.

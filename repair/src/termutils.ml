@@ -207,3 +207,18 @@ let map_constructors f env ind =
   map_state
     (fun i -> f (mkConstructU ((fst ind, i), snd ind)))
     (Collections.range 1 (ncons + 1))
+
+(*
+ * Get the induction principles from an inductive type
+ *)
+let induction_principles env ind sigma =
+  let sigma, prop_ind = 
+    fresh_global env sigma (Indrec.lookup_eliminator env (fst ind) Sorts.InProp)
+  in
+  let sigma, set_ind =
+    fresh_global env sigma (Indrec.lookup_eliminator env (fst ind) Sorts.InSet)
+  in
+  let sigma, type_ind =
+    fresh_global env sigma (Indrec.lookup_eliminator env (fst ind) Sorts.InType)
+  in
+  sigma, [prop_ind; set_ind; type_ind]
