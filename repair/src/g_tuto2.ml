@@ -15,6 +15,7 @@ let _ = Mltop.add_known_module __coq_plugin_name
 open Stdarg
 open Termutils
 open Exercise
+open Stateutils
 
 (* TODO move these etc *)
 type elim_app =
@@ -36,7 +37,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
                                      Vernacextend.TyNil))), (let coqpp_body e
                                                             () = Vernacextend.VtDefault (fun () -> 
                                                                  
-# 39 "src/g_tuto2.mlg"
+# 40 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -52,11 +53,42 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
                  (Printer.pr_econstr_env env sigma)
                  [c_o; c_n])
              swap_map])
-    (* map_state
-    (fun (old_c, new_c) ->
-      Printer.pr_sequence)
-     (* TODO print swap map --- move to another command --- show tests --- then move on *)
-     (* TODO explain move etc *)
+   
+                                                                 ) in fun e
+                                                            ?loc ~atts ()
+                                                            -> coqpp_body e
+                                                            (Attributes.unsupported_attributes atts)), None))]
+
+let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
+         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Define", 
+                                     Vernacextend.TyTerminal ("Map", 
+                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_ident), 
+                                     Vernacextend.TyTerminal (":=", Vernacextend.TyNonTerminal (
+                                                                    Extend.TUentry (Genarg.get_arg_tag wit_constr), 
+                                                                    Vernacextend.TyNil))))), 
+         (let coqpp_body i e
+         () = Vernacextend.VtDefault (fun () -> 
+# 62 "src/g_tuto2.mlg"
+    
+     let sigma, env = global_env () in
+     let sigma, map = internalize env e sigma in
+     let sigma, swap_map = get_swap_map env map sigma in
+     (* TODO move (duplicate), explain, clean *)
+     let inductives_from_map env map sigma =
+       let sigma, map_type = normalize_type env map sigma in
+       let rec get_inds env map_type sigma =
+         let open EConstr in
+         match kind sigma map_type with
+         | Constr.Prod (n, t, b) when isProd sigma b ->
+            get_inds (push_local (n, t) env) b sigma
+         | Constr.Prod (n, t, b) ->
+            (first_fun t sigma, first_fun b sigma)
+         | _ ->
+            CErrors.user_err
+              (Pp.str "Map function does not have type old_ind -> new_ind")
+       in sigma, get_inds env map_type sigma
+     in
+     let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
      let type_eliminator env ind sigma =
        Evd.fresh_global env sigma (Indrec.lookup_eliminator env ind Sorts.InType)
      in
@@ -71,22 +103,22 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
              let (((_, _), i_n), _) = destConstruct sigma c_n in
              (i_o, i_n))
            swap_map
-       in 
-       let cs =
-         let cs_arr = Array.of_list cs in
-         List.map
-           (fun i -> cs_arr.(List.assoc i swaps - 1))
-           (Collections.range 1 (List.length cs + 1))
-       in
-       bind
-         (fold_left_state
-            (fun (elim_c, cs) case sigma ->
-              let elim_c = reduce_term env_dep_elim (mkApp (elim_c, Array.make 1 case)) sigma in
-              sigma, (elim_c, List.append cs [case]))
-            (elim_p, [])
-            cs)
-         (fun (_, cs) -> ret cs)
-         sigma
+     in 
+     let cs =
+       let cs_arr = Array.of_list cs in
+       List.map
+         (fun i -> cs_arr.(List.assoc i swaps - 1))
+         (Collections.range 1 (List.length cs + 1))
+     in
+     bind
+       (fold_left_state
+          (fun (elim_c, cs) case sigma ->
+            let elim_c = reduce_term env_dep_elim (mkApp (elim_c, Array.make 1 case)) sigma in
+            sigma, (elim_c, List.append cs [case]))
+          (elim_p, [])
+          cs)
+       (fun (_, cs) -> ret cs)
+       sigma
      in
      (* TODO move etc *)
      let rec reconstruct_lambda_n env b i =
@@ -281,10 +313,9 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
      in
      Feedback.msg_notice (print env old_elim sigma);
      Feedback.msg_notice (print env new_elim sigma);
-     define i new_elim sigma;*)
+     define i new_elim sigma
    
-                                                                 ) in fun e
-                                                            ?loc ~atts ()
-                                                            -> coqpp_body e
-                                                            (Attributes.unsupported_attributes atts)), None))]
+              ) in fun i
+         e ?loc ~atts () -> coqpp_body i e
+         (Attributes.unsupported_attributes atts)), None))]
 
