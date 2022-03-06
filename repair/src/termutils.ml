@@ -92,6 +92,29 @@ let define name body sigma =
 let internalize env trm sigma =
   Constrintern.interp_constr_evars env sigma trm
 
+(*
+ * Look up a definition from an environment
+ *)
+let lookup_definition env def sigma =
+  match kind sigma def with
+  | Constr.Const (c, u) ->
+     let cb = lookup_constant c env in
+     (match Global.body_of_constant_body Library.indirect_accessor cb with
+      | Some(e, _, _) -> EConstr.of_constr e
+      | None -> failwith "This term has no value")
+  | _ -> failwith "not a definition"
+
+(* Fully lookup a def in env, but return the term if it is not a definition *)
+let rec unwrap_definition env trm sigma =
+  try
+    let body = lookup_definition env trm sigma in
+    if Constr.equal (EConstr.to_constr sigma body) (EConstr.to_constr sigma trm) then
+      trm
+    else
+      unwrap_definition env body sigma
+  with _ ->
+    trm
+
 (* --- Equality --- *)
   
 (*

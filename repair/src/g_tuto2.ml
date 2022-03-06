@@ -20,27 +20,6 @@ open Stateutils
 (* TODO move etc *)
 let print env t sigma = Printer.pr_econstr_env env sigma t
 
-(* TODO move etc *)
-let lookup_definition env def sigma =
-  let open EConstr in
-  match kind sigma def with
-  | Constr.Const (c, u) ->
-     let cb = Environ.lookup_constant c env in
-     (match Global.body_of_constant_body Library.indirect_accessor cb with
-      | Some(e, _, _) -> EConstr.of_constr e
-      | None -> failwith "This term has no value")
-  | _ -> failwith "not a definition"
-
-(* Fully lookup a def in env, but return the term if it is not a definition *)
-let rec unwrap_definition env trm sigma =
-  try
-    let body = lookup_definition env trm sigma in
-    if Constr.equal (EConstr.to_constr sigma body) (EConstr.to_constr sigma trm) then
-      trm
-    else
-      unwrap_definition env body sigma
-  with _ ->
-    trm
 
 
 let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -50,7 +29,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
                                      Vernacextend.TyNil))), (let coqpp_body e
                                                             () = Vernacextend.VtDefault (fun () -> 
                                                                  
-# 53 "src/g_tuto2.mlg"
+# 32 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -81,7 +60,7 @@ let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i e
          () = Vernacextend.VtDefault (fun () -> 
-# 77 "src/g_tuto2.mlg"
+# 56 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -108,7 +87,7 @@ let () = Vernacextend.vernac_extend ~command:"Swap" ~classifier:(fun _ -> Vernac
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i f e
          () = Vernacextend.VtDefault (fun () -> 
-# 102 "src/g_tuto2.mlg"
+# 81 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env f sigma in

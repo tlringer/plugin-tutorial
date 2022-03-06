@@ -88,6 +88,16 @@ val internalize :
   evar_map -> (* state *)
   EConstr.t state (* stateful internal representation *)
 
+(*
+ * Fully look up a definition in an environment, recursively looking
+ * up aliased terms. Return the original term if it is not a definition.
+ *)
+val unwrap_definition :
+  env -> (* environment *)
+  EConstr.t -> (* constant term *)
+  evar_map -> (* state *)
+  EConstr.t (* body of definition of term *)
+  
 (* --- Equality --- *)
   
 (*
