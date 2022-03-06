@@ -12,6 +12,15 @@ val get_swap_map :
   ((EConstr.t * EConstr.t) list) state (* map from old to new constructors *)
 
 (*
+ * TODO explain etc
+ *)
+val get_swapped_induction :
+  env -> (* environment *)
+  EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
+  evar_map -> (* state *)
+  EConstr.t state (* swapped induction principle over new_ind *)
+  
+(*
  * Substitute all occurrences of terms equal to src in trm with dst.
  * Make some simplifying assumptions about the format of trm
  * (no pattern matching, no fixpoints, not lets, and so on).
