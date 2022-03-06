@@ -25,3 +25,21 @@ let rec take_split (i : int) (l : 'a list) : ('a list * 'a list) =
     | h :: tl ->
        let (before, after) = take_split (i - 1) tl in
        (h :: before, after)
+
+(*
+ * Get the last element of a list
+ *)
+let last (l : 'a list) : 'a =
+  List.hd (List.rev l)
+
+(*
+ * Get all but the last element of a list
+ *)
+let all_but_last (l : 'a list) : 'a list =
+  List.rev (List.tl (List.rev l))
+
+(*
+ * Add an element to the end of a list
+ *)
+let snoc (a : 'a) (l : 'a list) : 'a list=
+  List.append l [a]

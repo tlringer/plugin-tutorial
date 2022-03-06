@@ -2,7 +2,10 @@ open EConstr
 open Termutils
 open Stateutils
 open Induction
+open Collections
 
+(* --- Exercise 1 --- *)
+   
 (* TODO make exercise, move, explain, clean *)
 let inductives_from_map env map sigma =
   let sigma, map_type = normalize_type env map sigma in
@@ -16,6 +19,8 @@ let inductives_from_map env map sigma =
        CErrors.user_err
          (Pp.str "Map function does not have type old_ind -> new_ind")
   in sigma, get_inds env map_type sigma
+
+(* --- Exercise 2 --- *)
 
 (* TODO move, explain, clean *)
 let constructor_body_typ_args env_c_body c_body sigma =
@@ -34,7 +39,7 @@ let constructor_body env c sigma =
 let swap_constructor env f c sigma =
   let sigma, (env_c_body, c_body) = constructor_body env c sigma in
   let sigma, typ_args = constructor_body_typ_args env_c_body c_body sigma in
-  let f_args = List.append typ_args [c_body] in
+  let f_args = snoc c_body typ_args in
   let f_c = apply_reduce normalize_term env f f_args sigma in
   sigma, first_fun f_c sigma
 
@@ -49,6 +54,8 @@ let get_swap_map env map sigma =
     (destInd sigma old_ind)
     sigma
 
+(* --- Exercise 3 --- *)
+  
 (* TODO move, clean, etc *)
 let index_of_constructor c sigma =
   snd (fst (destConstruct sigma c))
@@ -64,14 +71,6 @@ let applies f trm sigma =
 (* TODO *)
 let is_or_applies trm' trm sigma =
   applies trm' trm sigma || Constr.equal (EConstr.to_constr sigma trm') (EConstr.to_constr sigma trm)
-
-(* TODO *)
-let last (l : 'a list) : 'a =
-  List.hd (List.rev l)
-
-(* TODO *)
-let all_but_last (l : 'a list) : 'a list =
-  List.rev (List.tl (List.rev l))
   
  (* TODO make exercise, explain, clean *)
 let get_induction_map env map sigma =
@@ -124,7 +123,7 @@ let get_induction_map env map sigma =
        let c_args = all_args arg sigma in
        let lifted_constr = lift_constructor (first_fun arg sigma) sigma in
        let arg' = reduce_term env (mkAppl (lifted_constr, c_args)) sigma in
-       reduce_term env (mkAppl (f, List.append args [arg'])) sigma
+       reduce_term env (mkAppl (f, snoc arg' args)) sigma
   in
   (* TODO explain, move, etc *)
   let lift_env env old_ip sigma =
@@ -152,7 +151,7 @@ let get_induction_map env map sigma =
     let sigma, (_, new_ip_app) = Induction.of_ip env_lifted new_ip new_ind sigma in (* TODO env *)
     let pms = new_ip_app.pms in
     let p = new_ip_app.p in
-    let new_ip_p_pms = mkAppl (new_ip, List.append pms [p]) in
+    let new_ip_p_pms = mkAppl (new_ip, snoc p pms) in
     let sigma, (_, new_ip_p_pms_app) = Induction.of_ip env_lifted new_ip_p_pms new_ind sigma in (* TODO env *)
     let cs = lift_cases new_ip_app.cases sigma in
     let args = new_ip_p_pms_app.final_args in
