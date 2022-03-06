@@ -4,12 +4,6 @@ From Tuto2 Require Import Loader.
 (*
  * TODO explain and test the map command
  *)
-Module Old.
-Inductive list (T : Type) : Type :=
-| nil : list T
-| cons : T -> list T -> list T.
-End Old.
-
 Module New.
 Inductive list (T : Type) : Type :=
 | cons : T -> list T -> list T
@@ -17,7 +11,7 @@ Inductive list (T : Type) : Type :=
 End New.
 
 Require Import Coq.Program.Tactics.
-Program Definition f T : Old.list T -> New.list T.
+Program Definition f T : list T -> New.list T.
 Proof.
   intros l. induction l.
   - apply New.nil.
@@ -62,18 +56,17 @@ Print app.
 
 Require Import Tuto1.Loader.
 
-Sub Old.list Old.nil Old.cons Old.list_rect with New.list New.nil New.cons new_list_rect in
-  (fun (T : Type) (l m : Old.list T) =>
-    Old.list_rect
-      T
-      (fun _ => Old.list T -> Old.list T)
+Sub list @nil @cons list_rect with New.list New.nil New.cons new_list_rect in
+  (fun (T : Type) (l m : list T) =>
+    list_rect
+      (fun _ => list T -> list T)
       (fun _ => m)
-      (fun t l1 app_l1 _ => Old.cons T t (app_l1 m))   
+      (fun t l1 app_l1 _ => cons t (app_l1 m))   
       l
       m)
-  as app.
+  as appy.
 
-Print app.
+Print appy.
 
 
 (* TODO some proofs etc *)
@@ -84,3 +77,57 @@ Print app.
 (*
  * TODO explain and test the swap command
  *)
+
+Print list.
+Print New.list.
+
+Definition app (T : Type) (l m : list T) :=
+  list_rect
+    (fun _ => list T -> list T)
+    (fun _ => m)
+    (fun t l1 app_l1 _ => t :: app_l1 m)   
+    l
+    m. 
+
+Swapped app_swap := f app.
+
+Check app.
+Print list.
+Check app_swap.
+Print New.list.
+
+Lemma app_swap_OK:
+  forall (T : Type) (l m : list T),
+    f T (app T l m) = app_swap T (f T l) (f T m).
+Proof.
+  intros T l m. induction l.
+  - reflexivity.
+  - replace (app_swap T (f T (a :: l)) (f T m))
+       with (New.cons T a (app_swap T (f T l) (f T m)))
+         by reflexivity.
+    rewrite <- IHl.
+    reflexivity.
+Qed.
+
+(*
+ * Note that we don't yet recursively swap constants---my thesis work does :)
+ * but this requires some caching and tracking state that is annoying,
+ * so I omit it here for now. Instead, I inline app at the beginning.
+ *) 
+Lemma app_nil_r :
+  forall (T : Type) (l : list T), app T l nil = l.
+Proof.
+  unfold app. simpl. intros T l. induction l.
+  - simpl. reflexivity.
+  - simpl. rewrite IHl. reflexivity.
+Qed.
+
+Swapped app_nil_r_swap := f app_nil_r.
+
+Lemma app_nil_r_swapped :
+  forall (T : Type) (l : New.list T), app_swap T l (New.nil T) = l.
+Proof.
+  apply app_nil_r_swap.
+Qed.
+
+(* yayyy *)

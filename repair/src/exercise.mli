@@ -3,6 +3,15 @@ open Environ
 open Stateutils
 
 (*
+ * TODO explain etc, make exercise
+ *)
+val inductives_from_map :
+  env -> (* environment *)
+  EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
+  evar_map -> (* state *)
+  (EConstr.t * EConstr.t) state (* old_new, new_ind minus arguments *)
+   
+(*
  * TODO explain etc
  *)
 val get_swap_map :
@@ -18,7 +27,7 @@ val get_swapped_induction_principles :
   env -> (* environment *)
   EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
   evar_map -> (* state *)
-  (EConstr.t list) state (* swapped induction principles over new_ind *)
+  ((EConstr.t * EConstr.t) list) state (* map from old to new induction principles *)
   
 (*
  * Substitute all occurrences of terms equal to src in trm with dst.

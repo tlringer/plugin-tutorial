@@ -15,9 +15,32 @@ let _ = Mltop.add_known_module __coq_plugin_name
 open Stdarg
 open Termutils
 open Exercise
+open Stateutils
 
 (* TODO move etc *)
 let print env t sigma = Printer.pr_econstr_env env sigma t
+
+(* TODO move etc *)
+let lookup_definition env def sigma =
+  let open EConstr in
+  match kind sigma def with
+  | Constr.Const (c, u) ->
+     let cb = Environ.lookup_constant c env in
+     (match Global.body_of_constant_body Library.indirect_accessor cb with
+      | Some(e, _, _) -> EConstr.of_constr e
+      | None -> failwith "This term has no value")
+  | _ -> failwith "not a definition"
+
+(* Fully lookup a def in env, but return the term if it is not a definition *)
+let rec unwrap_definition env trm sigma =
+  try
+    let body = lookup_definition env trm sigma in
+    if Constr.equal (EConstr.to_constr sigma body) (EConstr.to_constr sigma trm) then
+      trm
+    else
+      unwrap_definition env body sigma
+  with _ ->
+    trm
 
 
 let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -27,7 +50,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
                                      Vernacextend.TyNil))), (let coqpp_body e
                                                             () = Vernacextend.VtDefault (fun () -> 
                                                                  
-# 30 "src/g_tuto2.mlg"
+# 53 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -58,20 +81,52 @@ let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i e
          () = Vernacextend.VtDefault (fun () -> 
-# 54 "src/g_tuto2.mlg"
+# 77 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
-     let sigma, swapped_ips = get_swapped_induction_principles env map sigma in
+     let sigma, ip_map = get_swapped_induction_principles env map sigma in
      List.iter2
-       (fun ip suffix ->
+       (fun (_, ip) suffix ->
          let prefix = Names.Id.to_string i in
          let id = Names.Id.of_string (String.concat "_" [prefix; suffix]) in
          define id ip sigma)
-       swapped_ips
+       ip_map
        ["ind"; "rec"; "rect"] 
    
               ) in fun i
          e ?loc ~atts () -> coqpp_body i e
+         (Attributes.unsupported_attributes atts)), None))]
+
+let () = Vernacextend.vernac_extend ~command:"Swap" ~classifier:(fun _ -> Vernacextend.classify_as_sideeff) ?entry:None 
+         [(Vernacextend.TyML (false, Vernacextend.TyTerminal ("Swapped", 
+                                     Vernacextend.TyNonTerminal (Extend.TUentry (Genarg.get_arg_tag wit_ident), 
+                                     Vernacextend.TyTerminal (":=", Vernacextend.TyNonTerminal (
+                                                                    Extend.TUentry (Genarg.get_arg_tag wit_constr), 
+                                                                    Vernacextend.TyNonTerminal (
+                                                                    Extend.TUentry (Genarg.get_arg_tag wit_constr), 
+                                                                    Vernacextend.TyNil))))), 
+         (let coqpp_body i f e
+         () = Vernacextend.VtDefault (fun () -> 
+# 102 "src/g_tuto2.mlg"
+    
+     let sigma, env = global_env () in
+     let sigma, map = internalize env f sigma in
+     let sigma, trm = internalize env e sigma in
+     let sigma, typ_map = inductives_from_map env map sigma in
+     let sigma, swap_map = get_swap_map env map sigma in
+     let sigma, ip_map = get_swapped_induction_principles env map sigma in
+     let sigma, swapped =
+       fold_left_state
+         (fun subbed (src, dst) sigma ->
+           let sigma, subbed = sub env (src, dst) subbed sigma in
+           sigma, reduce_term env subbed sigma)
+         (unwrap_definition env trm sigma)
+         (List.append (typ_map :: swap_map) (List.rev ip_map))
+         sigma
+     in Termutils.define i swapped sigma
+   
+              ) in fun i
+         f e ?loc ~atts () -> coqpp_body i f e
          (Attributes.unsupported_attributes atts)), None))]
 

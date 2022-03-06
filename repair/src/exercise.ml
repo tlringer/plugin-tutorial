@@ -233,13 +233,16 @@ let get_swapped_induction_principles env map sigma =
     sigma, reconstruct_lambda_n env_lifted new_ip_p_pms_cs_args (nb_rel env)
   in
   let sigma, new_ips = induction_principles env (destInd sigma new_ind) sigma in
-  map_state
-    (fun (old_ip, new_ip) sigma ->
-      lift_induction env old_ip new_ip sigma)
-    (List.combine old_ips new_ips)
-    sigma
+  let sigma, lifted_ips =
+    map_state
+      (fun (old_ip, new_ip) sigma -> lift_induction env old_ip new_ip sigma)
+      (List.combine old_ips new_ips)
+      sigma
+  in sigma, List.combine old_ips lifted_ips
 
 (*
+ * TODO use one of Coq's maps or folds instead if possible
+ *
  * Substitute all occurrences of terms equal to src in trm with dst.
  * Make some simplifying assumptions about the format of trm
  * (no pattern matching, no fixpoints, not lets, and so on).
@@ -259,6 +262,10 @@ let rec sub env (src, dst) trm sigma =
     sigma, dst
   else
     match kind sigma trm with
+    | Constr.Cast (b, k, t) ->
+       let sigma, sub_b = sub env (src, dst) b sigma in
+       let sigma, sub_t = sub env (src, dst) t sigma in
+       sigma, mkCast (sub_b, k, sub_t)
     | Constr.Lambda (n, t, b) ->
        (* sub (fun (n : t) => b) := fun (n : sub t) => sub b *)
        let sigma, sub_t = sub env (src, dst) t sigma in
@@ -278,6 +285,11 @@ let rec sub env (src, dst) trm sigma =
            args
            sigma
        in sigma, mkApp (sub_f, sub_args)
+   (* | Constr.Const _ ->
+       (* note caveat about not defining a new constant *)
+       let body = unwrap_definition env trm sigma in
+       Feedback.msg_notice (Printer.pr_econstr_env env sigma body);
+       sub env (src, dst) body sigma *)
     | _ ->
        (* otherwise, return trm *)
        sigma, trm

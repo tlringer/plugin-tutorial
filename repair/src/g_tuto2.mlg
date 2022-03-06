@@ -13,9 +13,32 @@ DECLARE PLUGIN "tuto2_plugin"
 open Stdarg
 open Termutils
 open Exercise
+open Stateutils
 
 (* TODO move etc *)
 let print env t sigma = Printer.pr_econstr_env env sigma t
+
+(* TODO move etc *)
+let lookup_definition env def sigma =
+  let open EConstr in
+  match kind sigma def with
+  | Constr.Const (c, u) ->
+     let cb = Environ.lookup_constant c env in
+     (match Global.body_of_constant_body Library.indirect_accessor cb with
+      | Some(e, _, _) -> EConstr.of_constr e
+      | None -> failwith "This term has no value")
+  | _ -> failwith "not a definition"
+
+(* Fully lookup a def in env, but return the term if it is not a definition *)
+let rec unwrap_definition env trm sigma =
+  try
+    let body = lookup_definition env trm sigma in
+    if Constr.equal (EConstr.to_constr sigma body) (EConstr.to_constr sigma trm) then
+      trm
+    else
+      unwrap_definition env body sigma
+  with _ ->
+    trm
 }
 
 (*** TODO ***)
@@ -54,13 +77,13 @@ VERNAC COMMAND EXTEND DefineMap CLASSIFIED AS SIDEFF
    {
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
-     let sigma, swapped_ips = get_swapped_induction_principles env map sigma in
+     let sigma, ip_map = get_swapped_induction_principles env map sigma in
      List.iter2
-       (fun ip suffix ->
+       (fun (_, ip) suffix ->
          let prefix = Names.Id.to_string i in
          let id = Names.Id.of_string (String.concat "_" [prefix; suffix]) in
          define id ip sigma)
-       swapped_ips
+       ip_map
        ["ind"; "rec"; "rect"] 
    }
 END
@@ -71,22 +94,29 @@ END
  * TODO explain, break down into smaller problems
  *
  * TODO exercise
+ * TODO something weird with induction principles, whatever
+ * TODO for constants, make a variant that calls swap
  *)
-(*
 VERNAC COMMAND EXTEND Swap CLASSIFIED AS SIDEFF
 | [ "Swapped" ident(i) ":=" constr(f) constr(e) ] ->
    {
      let sigma, env = global_env () in
-     let sigma, old_ind = internalize env o sigma in
-     let sigma, new_ind = internalize env n sigma in
+     let sigma, map = internalize env f sigma in
      let sigma, trm = internalize env e sigma in
-     (*
-      * TODO: retrieve configuration (not in table, just get from scratch---note about table in exercise), pass to sub implementation
-      *)
-     ()
+     let sigma, typ_map = inductives_from_map env map sigma in
+     let sigma, swap_map = get_swap_map env map sigma in
+     let sigma, ip_map = get_swapped_induction_principles env map sigma in
+     let sigma, swapped =
+       fold_left_state
+         (fun subbed (src, dst) sigma ->
+           let sigma, subbed = sub env (src, dst) subbed sigma in
+           sigma, reduce_term env subbed sigma)
+         (unwrap_definition env trm sigma)
+         (List.append (typ_map :: swap_map) (List.rev ip_map))
+         sigma
+     in Termutils.define i swapped sigma
    }
 END
- *)
 
 (*** DISCUSSION ***)
 
