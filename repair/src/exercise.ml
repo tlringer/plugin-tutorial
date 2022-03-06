@@ -1,16 +1,7 @@
 open EConstr
 open Termutils
 open Stateutils
-
-(* TODO move these etc *)
-type elim_app =
-  {
-    elim : EConstr.t;
-    pms : EConstr.t list;
-    p : EConstr.t;
-    cs : EConstr.t list;
-    final_args : EConstr.t list;
-  }
+open Induction
 
 (* TODO make exercise, move, explain, clean *)
 let inductives_from_map env map sigma =
@@ -50,7 +41,7 @@ let swap_constructor env f c sigma =
 (* TODO make exercise, explain, clean *)
 let get_swap_map env map sigma =
   let sigma, (old_ind, _) = inductives_from_map env map sigma in
-  map_constructors
+  Induction.map_constructors
     (fun old_c sigma ->
       let sigma, new_c = swap_constructor env map old_c sigma in
       sigma, (old_c, new_c))
@@ -61,44 +52,6 @@ let get_swap_map env map sigma =
 (* TODO move, clean, etc *)
 let index_of_constructor c sigma =
   snd (fst (destConstruct sigma c))
-
-(* TODO *)
-let type_of_inductive index mutind_body =
-  let open Declarations in
-  let ind_bodies = mutind_body.mind_packets in
-  let ind_body = Array.get ind_bodies index in
-  let univs = Declareops.inductive_polymorphic_context mutind_body in
-  let univ_instance = Univ.make_abstract_instance univs in
-  let mutind_spec = (mutind_body, ind_body) in
-  EConstr.of_constr (Inductive.type_of_inductive (mutind_spec, univ_instance))
-
-(* TODO *)     
-let deconstruct_eliminator env app ind sigma =
-  let open Environ in
-  let open Declarations in
-  let from_i = fst (fst (destInd sigma ind)) in
-  let elim = first_fun app sigma in
-  let ip_args = all_args app sigma in
-  let sigma, ip_typ = reduce_type env elim sigma in
-  let from_m = lookup_mind from_i env in
-  let npms = from_m.mind_nparams in
-  let from_arity = arity (type_of_inductive 0 from_m) sigma in
-  let num_indices = from_arity - npms in
-  let num_props = 1 in
-  let num_constrs = arity ip_typ sigma - npms - num_props - num_indices - 1 in
-  let (pms, pmd_args) = Collections.take_split npms ip_args in
-  match pmd_args with
-  | p :: cs_and_args ->
-     let (cs, final_args) = Collections.take_split num_constrs cs_and_args in
-     sigma, { elim; pms; p; cs; final_args }
-  | _ ->
-     failwith "can't deconstruct eliminator; no final arguments"
-
-(* TODO explain move etc *)
-let deconstruct_ip env ip ind sigma =
-  let sigma, ip = expand_eta env ip sigma in
-  let env_body, ip_body = push_all_locals_lambda env ip sigma in
-  deconstruct_eliminator env_body ip_body ind sigma
     
 (* TODO clean move etc *)
 let applies f trm sigma =
@@ -124,7 +77,7 @@ let all_but_last (l : 'a list) : 'a list =
 let get_induction_map env map sigma =
   let sigma, swap_map = get_swap_map env map sigma in
   let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
-  let sigma, old_ips = induction_principles env (destInd sigma old_ind) sigma in
+  let sigma, old_ips = Induction.induction_principles env old_ind sigma in
   (* TODO explain, move etc *)
   let lift_cases cases sigma =
     List.map
@@ -176,7 +129,7 @@ let get_induction_map env map sigma =
   (* TODO explain, move, etc *)
   let lift_env env old_ip sigma =
     let sigma, old_ip = expand_eta env old_ip sigma in
-    let sigma, old_ip_app = deconstruct_ip env old_ip old_ind sigma in
+    let sigma, (_, old_ip_app) = Induction.of_ip env old_ip old_ind sigma in (* TODO env *)
     let env_pms, old_ip_pms = push_n_locals_lambda (List.length old_ip_app.pms) env old_ip sigma in
     let (p_n, p_typ, b) = destLambda sigma old_ip_pms in
     let env_pms_p = push_local (p_n, lift_motive_type p_typ sigma) env_pms in
@@ -184,7 +137,7 @@ let get_induction_map env map sigma =
     let rec lift env elim i sigma =
       match kind sigma elim with
       | Constr.Lambda (n, t, b) ->
-         if i < List.length old_ip_app.cs then
+         if i < List.length old_ip_app.cases then
            lift (push_local (n, lift_case_typ env t sigma) env) b (i + 1) sigma
          else
            lift (push_local (n, lift_inductive t sigma) env) b (i + 1) sigma
@@ -196,17 +149,17 @@ let get_induction_map env map sigma =
   let lift_induction env old_ip new_ip sigma =
     let open Environ in
     let env_lifted = lift_env env old_ip sigma in
-    let sigma, new_ip_app = deconstruct_ip env_lifted new_ip new_ind sigma in
+    let sigma, (_, new_ip_app) = Induction.of_ip env_lifted new_ip new_ind sigma in (* TODO env *)
     let pms = new_ip_app.pms in
     let p = new_ip_app.p in
     let new_ip_p_pms = mkAppl (new_ip, List.append pms [p]) in
-    let sigma, new_ip_p_pms_app = deconstruct_ip env_lifted new_ip_p_pms new_ind sigma in
-    let cs = lift_cases new_ip_app.cs sigma in
+    let sigma, (_, new_ip_p_pms_app) = Induction.of_ip env_lifted new_ip_p_pms new_ind sigma in (* TODO env *)
+    let cs = lift_cases new_ip_app.cases sigma in
     let args = new_ip_p_pms_app.final_args in
     let new_ip_p_pms_cs_args = mkAppl (new_ip_p_pms, List.append cs args) in
     sigma, snd (reconstruct_lambda_n (nb_rel env) env_lifted new_ip_p_pms_cs_args)
   in
-  let sigma, new_ips = induction_principles env (destInd sigma new_ind) sigma in
+  let sigma, new_ips = Induction.induction_principles env new_ind sigma in
   let sigma, lifted_ips =
     map_state
       (fun (old_ip, new_ip) sigma -> lift_induction env old_ip new_ip sigma)

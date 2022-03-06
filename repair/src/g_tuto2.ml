@@ -92,7 +92,7 @@ let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> V
          let id = Names.Id.of_string (String.concat "_" [prefix; suffix]) in
          define id ip sigma)
        ip_map
-       ["ind"; "rec"; "rect"] 
+       ["rect"; "rec"; "ind"] 
    
               ) in fun i
          e ?loc ~atts () -> coqpp_body i e
@@ -122,7 +122,7 @@ let () = Vernacextend.vernac_extend ~command:"Swap" ~classifier:(fun _ -> Vernac
            let sigma, subbed = sub env (src, dst) subbed sigma in
            sigma, reduce_term env subbed sigma)
          (unwrap_definition env trm sigma)
-         (List.append (typ_map :: swap_map) (List.rev ip_map))
+         (List.append (typ_map :: swap_map) ip_map)
          sigma
      in Termutils.define i swapped sigma
    

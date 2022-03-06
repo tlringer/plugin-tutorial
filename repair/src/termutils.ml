@@ -1,12 +1,11 @@
 (*
  * Utilities for dealing with Coq terms, to abstract away some pain for students
  * Utilities for the state monad were moved to stateutils.ml/stateutils.mli
+ * Utilities for inductive types & proofs are in induction.ml/induction.mli
  *)
 
 open EConstr
-open Declarations
 open Environ
-open Stateutils
 
 (* --- Debugging --- *)
 
@@ -264,32 +263,3 @@ let expand_eta env trm sigma =
       (fst (push_all_locals_prod (Environ.empty_env) typ sigma))
       (mkAppl (shift_by (List.length curried_args) trm sigma, curried_args))
   in sigma, expanded
-
-(* --- Inductive Types --- *)
-
-(*
- * Map a function f on the bodies (conclusions) of all constructors of
- inductive type ind. *)
-let map_constructors f env ind =
-  let m_o = lookup_mind (fst (fst ind)) env in
-  let b_o = m_o.mind_packets.(0) in
-  let cs_o = b_o.mind_consnames in
-  let ncons = Array.length cs_o in
-  map_state
-    (fun i -> f (mkConstructU ((fst ind, i), snd ind)))
-    (Collections.range 1 (ncons + 1))
-
-(*
- * Get the induction principles from an inductive type
- *)
-let induction_principles env ind sigma =
-  let sigma, prop_ind = 
-    fresh_global env sigma (Indrec.lookup_eliminator env (fst ind) Sorts.InProp)
-  in
-  let sigma, set_ind =
-    fresh_global env sigma (Indrec.lookup_eliminator env (fst ind) Sorts.InSet)
-  in
-  let sigma, type_ind =
-    fresh_global env sigma (Indrec.lookup_eliminator env (fst ind) Sorts.InType)
-  in
-  sigma, [prop_ind; set_ind; type_ind]

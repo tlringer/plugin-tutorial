@@ -10,6 +10,8 @@ src/stateutils.mli
 src/stateutils.ml
 src/termutils.mli
 src/termutils.ml
+src/induction.mli
+src/induction.ml
 src/exercise.mli
 src/exercise.ml
 src/g_tuto2.mlg

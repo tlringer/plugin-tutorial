@@ -3,13 +3,13 @@ open Environ
 open Stateutils
 
 (*
- * TODO explain etc, make exercise
+ * TODO explain etc
  *)
 val inductives_from_map :
   env -> (* environment *)
   EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
   evar_map -> (* state *)
-  (EConstr.t * EConstr.t) state (* old_new, new_ind minus arguments *)
+  (EConstr.t * EConstr.t) state (* (old_new, new_ind) minus arguments *)
    
 (*
  * TODO explain etc
