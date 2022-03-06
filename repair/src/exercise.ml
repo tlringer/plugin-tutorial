@@ -152,87 +152,70 @@ let get_swapped_induction_principles env map sigma =
         List.nth cases (i - 1))
       swap_map
   in
+  (* TODO *)
+  let lift_inductive t sigma =
+    if is_or_applies old_ind t sigma then
+      let args = all_args t sigma in
+      if List.length args = 0 then
+        new_ind
+      else
+        reduce_term env (mkAppl (new_ind, args)) sigma
+    else
+      t
+  in
+  (* TODO *)
+  let rec lift_motive_type typ sigma =
+      match kind sigma typ with
+      | Constr.Prod (n, t, b) ->
+         mkProd (n, lift_inductive t sigma, lift_motive_type b sigma)
+      | _ ->
+         typ
+  in
+  (* TODO *)
+  let lift_constructor c sigma =
+    let i = index_of_constructor c sigma in
+    let swap_map = Array.of_list swap_map in
+    snd (swap_map.(i - 1))
+  in
+  (* TODO *)
+  let rec lift_case_typ env case_typ sigma =
+    match kind sigma case_typ with
+    | Constr.Prod (n, t, b) ->
+       let env_b = push_local (n, t) env in
+       mkProd (n, lift_inductive t sigma, lift_case_typ env_b b sigma)
+    | _ ->
+       let f = first_fun case_typ sigma in
+       let args = all_but_last (all_args case_typ sigma) in
+       let arg = last (all_args case_typ sigma) in
+       let c_args = all_args arg sigma in
+       let lifted_constr = lift_constructor (first_fun arg sigma) sigma in
+       let arg' = reduce_term env (mkAppl (lifted_constr, c_args)) sigma in
+       reduce_term env (mkAppl (f, List.append args [arg'])) sigma
+  in
   (* TODO explain, move, etc *)
-  let initialize_dep_elim_env env elim_rev sigma =
+  let lift_env env elim_rev sigma =
     let sigma, elim_rev_eta = expand_eta env elim_rev sigma in
     let env_elim_rev, elim_body_rev = push_all_locals_lambda env elim_rev_eta sigma in
     let sigma, elim_app_rev = deconstruct_eliminator env_elim_rev elim_body_rev (fst (fst (destInd sigma old_ind))) sigma in
     let env, elim_rev = push_n_locals_lambda (List.length elim_app_rev.pms) env elim_rev_eta sigma in
     let (p_n, p_typ, b) = destLambda sigma elim_rev in
-    let rec init_p_typ env p_typ sigma =
-      let open EConstr in
-      match kind sigma p_typ with
-      | Constr.Prod (n, t, b) ->
-         let env_b = push_local (n, t) env in
-         let sigma, b' = init_p_typ env_b b sigma in
-         if is_or_applies old_ind t sigma then
-           let args = all_args t sigma in
-           let t' =
-             if List.length args = 0 then
-               new_ind
-             else
-               reduce_term env (mkAppl (new_ind, args)) sigma
-           in sigma, mkProd (n, t', b')
-         else
-           sigma, mkProd (n, t, b')
-      | _ ->
-         sigma, p_typ
-    in
-    let sigma, p_typ' = init_p_typ env p_typ sigma in
-    let env_p = push_local (p_n, p_typ') env in
+    let env_p = push_local (p_n, lift_motive_type p_typ sigma) env in
     (* TODO *)
-    let rec init_case_typ env case_typ p sigma =
-      let open EConstr in
-      match kind sigma case_typ with
-      | Constr.Prod (n, t, b) ->
-         let env_b = push_local (n, t) env in
-         let sigma, b' = init_case_typ env_b b (shift_by 1 p sigma) sigma in
-         if is_or_applies old_ind t sigma then
-           let args = all_args t sigma in
-           let t' =
-             if List.length args = 0 then
-               new_ind
-             else
-               mkAppl (new_ind, args)
-           in sigma, mkProd (n, t', b')
-         else
-           sigma, mkProd (n, t, b')
-      | _ ->
-         let f = first_fun case_typ sigma in
-         let args = all_but_last (all_args case_typ sigma) in
-         let arg = last (all_args case_typ sigma) in
-         let ((_, i), _) = destConstruct sigma (first_fun arg sigma) in
-         let c_args = all_args arg sigma in
-         let swap_map = Array.of_list swap_map in
-         let (_, lifted_constr) = swap_map.(i - 1) in
-         let arg' = reduce_term env (mkAppl (lifted_constr, c_args)) sigma in
-         sigma, reduce_term env (mkAppl (f, List.append args [arg'])) sigma
-    in
     let rec init env elim i sigma =
-      let open EConstr in
       match kind sigma elim with
       | Constr.Lambda (n, t, b) ->
          if i < List.length elim_app_rev.cs then
-           let sigma, t' = init_case_typ env t (mkRel (i + 1)) sigma in
-           init (push_local (n, t') env) b (i + 1) sigma
-         else if is_or_applies old_ind t sigma then
-           let args = all_args t sigma in
-           let sigma, t' =
-             if List.length args = 0 then
-               sigma, new_ind
-             else
-               sigma, mkAppl (new_ind, args)
-           in init (push_local (n, t') env) b (i + 1) sigma
+           init (push_local (n, lift_case_typ env t sigma) env) b (i + 1) sigma
          else
-           init (push_local (n, t) env) b (i + 1) sigma
+           init (push_local (n, lift_inductive t sigma) env) b (i + 1) sigma
       | _ ->
-         sigma, env
+         env
     in init env_p b 0 sigma
   in
   (* TODO explain, move, etc *)
-  let initialize_dep_elim env elim elim_new sigma =
+  let lift_induction env elim elim_new sigma =
     let open Environ in
-    let sigma, env_dep_elim = initialize_dep_elim_env env elim sigma in
+    let env_dep_elim = lift_env env elim sigma in
     let sigma, elim_eta = expand_eta env_dep_elim elim_new sigma in
     let sigma, dep_elim =
       let npms =
@@ -259,7 +242,7 @@ let get_swapped_induction_principles env map sigma =
   let sigma, new_ips = induction_principles env (destInd sigma new_ind) sigma in
   map_state
     (fun (old_ip, new_ip) sigma ->
-      initialize_dep_elim env old_ip new_ip sigma)
+      lift_induction env old_ip new_ip sigma)
     (List.combine old_ips new_ips)
     sigma
 
