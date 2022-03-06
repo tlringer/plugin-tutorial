@@ -58,38 +58,33 @@ let get_swap_map env map sigma =
     (destInd sigma old_ind)
     sigma
 
+(* TODO move, clean, etc *)
+let index_of_constructor c sigma =
+  snd (fst (destConstruct sigma c))
+  
  (* TODO make exercise, explain, clean *)
 let get_swapped_induction_principles env map sigma =
   let sigma, swap_map = get_swap_map env map sigma in
   let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
-  let sigma, elims = induction_principles env (destInd sigma old_ind) sigma in
+  let sigma, old_ips = induction_principles env (destInd sigma old_ind) sigma in
   (* TODO explain, move etc *)
-  let initialize_dep_elim_cs env_dep_elim elim_p npms cs swap_map sigma =
-    let swaps : (int * int) list =
+  let initialize_dep_elim_cases env_dep_elim elim_p cases sigma =
+    let swapped_cases =
       List.map
         (fun (c_o, c_n) ->
-          let (((_, _), i_o), _) = destConstruct sigma c_o in
-          let (((_, _), i_n), _) = destConstruct sigma c_n in
-          (i_o, i_n))
+          let i = index_of_constructor c_n sigma in
+          List.nth cases (i - 1))
         swap_map
-    in 
-    let cs =
-      let cs_arr = Array.of_list cs in
-       List.map
-         (fun i -> cs_arr.(List.assoc i swaps - 1))
-         (Collections.range 1 (List.length cs + 1))
     in
-    bind
-       (fold_left_state
-          (fun (elim_c, cs) case sigma ->
-            let elim_c = reduce_term env_dep_elim (mkApp (elim_c, Array.make 1 case)) sigma in
-            sigma, (elim_c, List.append cs [case]))
-          (elim_p, [])
-          cs)
-       (fun (_, cs) -> ret cs)
-       sigma
-     in
-     (* TODO move etc *)
+    snd
+      (List.fold_left
+         (fun (elim_c, swapped_cases) swapped_case ->
+           let elim_c = apply_reduce reduce_term env_dep_elim elim_c [swapped_case] sigma in
+           elim_c, List.append swapped_cases [swapped_case])
+         (elim_p, [])
+         swapped_cases)
+  in
+  (* TODO move etc *)
      let rec reconstruct_lambda_n env b i =
        let open Environ in
        if nb_rel env = i then
@@ -259,22 +254,22 @@ let get_swapped_induction_principles env map sigma =
            let env_elim, elim_body = push_all_locals_lambda env_dep_elim elim_eta sigma in
            let elim_body = reduce_term env_elim elim_body sigma in
            let sigma, elim_app = deconstruct_eliminator env_elim elim_body from_i sigma in
-           initialize_dep_elim_cs env_dep_elim elim_p npms elim_app.cs swap_map sigma
+           sigma, initialize_dep_elim_cases env_dep_elim elim_p elim_app.cs sigma
          in
          let elim_cs = reduce_term env_dep_elim (mkAppl (elim_p, cs)) sigma in
          let final_args = mk_n_args (arity elim_cs sigma) in
          sigma, reduce_term env_dep_elim (mkAppl (elim_cs, final_args)) sigma
        in sigma, reconstruct_lambda_n env_dep_elim dep_elim (nb_rel env)
      in
-     let sigma, new_elims = induction_principles env (destInd sigma new_ind) sigma in
+     let sigma, new_ips = induction_principles env (destInd sigma new_ind) sigma in
      map_state
-       (fun (old_elim, new_elim_old) sigma ->
+       (fun (old_ip, new_ip) sigma ->
          
          let (from_i, _) = fst (destInd sigma old_ind) in
          let (to_i, _) = fst (destInd sigma new_ind) in
-         initialize_dep_elim env old_elim new_elim_old from_i to_i sigma
+         initialize_dep_elim env old_ip new_ip from_i to_i sigma
        )
-       (List.combine elims new_elims)
+       (List.combine old_ips new_ips)
        sigma
 
 (*

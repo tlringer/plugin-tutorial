@@ -47,7 +47,8 @@ END
 
 (* TODO explain, break down into smaller problems, handle constants 
    TODO exercise
-   TODO debugging info   *)
+   TODO debugging info  
+   TODO note about when this will break (like when large elim not defined) *)
 VERNAC COMMAND EXTEND DefineMap CLASSIFIED AS SIDEFF
 | [ "Define" "Map" ident(i) ":=" constr(e) ] ->
    {

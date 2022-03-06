@@ -58,7 +58,7 @@ let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i e
          () = Vernacextend.VtDefault (fun () -> 
-# 53 "src/g_tuto2.mlg"
+# 54 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
