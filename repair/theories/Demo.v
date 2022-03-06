@@ -24,6 +24,29 @@ Proof.
   - apply New.cons; auto.
 Defined.
 
+Require Import Vector.
+Check Vector.t_rect.
+
+Print Vector.t.
+
+
+Inductive vector (A : Type) : nat -> Type :=
+| nilV : vector A 0 | consV : A -> forall n : nat, vector A n -> vector A (S n).
+
+Inductive hector (A : Type) : nat -> Type :=
+| consH : A -> forall n : nat, hector A n -> hector A (S n) | nilH : hector A 0.
+
+Program Definition g T n : vector T n -> hector T n.
+Proof.
+  intros v. induction v.
+  - apply nilH.
+  - apply consH; auto.
+Defined.
+
+Display Map g.
+
+Define Map new_vect := g.
+
 Display Map f.
 
 Define Map new_list := f.
