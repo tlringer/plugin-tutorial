@@ -61,6 +61,20 @@ let get_swap_map env map sigma =
 (* TODO move, clean, etc *)
 let index_of_constructor c sigma =
   snd (fst (destConstruct sigma c))
+
+(* TODO move etc *)
+let rec reconstruct_lambda_n env b i =
+  let open Environ in
+  if nb_rel env = i then
+    b
+  else
+    let (n, _, t) = Context.Rel.Declaration.to_tuple @@ lookup_rel 1 env in
+    let env' = pop_rel_context 1 env in
+    reconstruct_lambda_n env' (mkLambda (n, (EConstr.of_constr t), b)) i
+
+(* TODO move etc *)
+let reconstruct_lambda env b =
+  reconstruct_lambda_n env b 0
   
  (* TODO make exercise, explain, clean *)
 let get_swapped_induction_principles env map sigma =
@@ -68,35 +82,13 @@ let get_swapped_induction_principles env map sigma =
   let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
   let sigma, old_ips = induction_principles env (destInd sigma old_ind) sigma in
   (* TODO explain, move etc *)
-  let initialize_dep_elim_cases env_dep_elim elim_p cases sigma =
-    let swapped_cases =
-      List.map
-        (fun (c_o, c_n) ->
-          let i = index_of_constructor c_n sigma in
-          List.nth cases (i - 1))
-        swap_map
-    in
-    snd
-      (List.fold_left
-         (fun (elim_c, swapped_cases) swapped_case ->
-           let elim_c = apply_reduce reduce_term env_dep_elim elim_c [swapped_case] sigma in
-           elim_c, List.append swapped_cases [swapped_case])
-         (elim_p, [])
-         swapped_cases)
+  let initialize_dep_elim_cases cases sigma =
+    List.map
+      (fun (c_o, c_n) ->
+        let i = index_of_constructor c_n sigma in
+        List.nth cases (i - 1))
+      swap_map
   in
-  (* TODO move etc *)
-     let rec reconstruct_lambda_n env b i =
-       let open Environ in
-       if nb_rel env = i then
-         b
-       else
-         let (n, _, t) = Context.Rel.Declaration.to_tuple @@ lookup_rel 1 env in
-         let env' = pop_rel_context 1 env in
-         reconstruct_lambda_n env' (mkLambda (n, (EConstr.of_constr t), b)) i
-     in
-     let reconstruct_lambda env b =
-       reconstruct_lambda_n env b 0
-     in
      (* TODO clean move etc *)
      let shift_by n trm sigma =
        EConstr.of_constr (Constr.liftn n 0 (EConstr.to_constr sigma trm))
@@ -254,7 +246,7 @@ let get_swapped_induction_principles env map sigma =
            let env_elim, elim_body = push_all_locals_lambda env_dep_elim elim_eta sigma in
            let elim_body = reduce_term env_elim elim_body sigma in
            let sigma, elim_app = deconstruct_eliminator env_elim elim_body from_i sigma in
-           sigma, initialize_dep_elim_cases env_dep_elim elim_p elim_app.cs sigma
+           sigma, initialize_dep_elim_cases elim_app.cs sigma
          in
          let elim_cs = reduce_term env_dep_elim (mkAppl (elim_p, cs)) sigma in
          let final_args = mk_n_args (arity elim_cs sigma) in
