@@ -68,25 +68,41 @@ val of_ip :
   evar_map -> (* state *)
   (env * inductive_proof) state (* representation as env * inductive_proof *)
 
-(* --- Inductive Types --- *)
+(* --- Constructors --- *)
 
 (*
- * Map a function f on the constructors of inductive type T.
+ * Map a function f on the constructors of inductive type ind.
  * Note that this does not handle mutually inductive types.
  *)
 val map_constructors :
   (EConstr.t -> evar_map -> 'a state) -> (* f *)
   env -> (* environment *)
-  Names.Ind.t * EConstr.EInstance.t -> (* T *)
+  Names.Ind.t * EConstr.EInstance.t -> (* ind *)
   evar_map -> (* state *)
-  ('a list) state (* (map f (constructors T)) *)
+  ('a list) state (* (map f (constructors ind)) *)
 
 (*
- * Get the induction principles from an inductive type T
- * Return the empty list if T is not an inductive type
+ * Constructors in Coq are represented as a 1-indexed collection.
+ * But 1-indexing is painful, so here I represent them as 0-indexed
+ * collection.
+ *
+ * So, for example, for the inductive type list, I treat nil as
+ * Constr(0, list T), and I treat cons as Constr(1, list T).
+ * This gets back the 0-indexed index.
  *)
-val induction_principles :
+val index_of_constructor :
+  EConstr.t -> (* term that represents a constructor *)
+  evar_map -> (* state *)
+  int (* index, starting at 0 *)
+  
+(* --- Induction Principles --- *)
+
+(*
+ * Get the induction principles from an inductive type ind
+ * Return the empty list if ind is not an inductive type
+ *)
+val principles :
   env -> (* environment *)
-  EConstr.t -> (* T *)
+  EConstr.t -> (* ind *)
   evar_map -> (* state *)
   (EConstr.t list) state (* list of induction principles *)

@@ -11,11 +11,11 @@ open Indrec
  * and inductive proofs inside of Coq.
  *)
 
-(* --- Inductive Types --- *)
+(* --- Inductive Constructors --- *)
 
 (*
- * Map a function f on the bodies (conclusions) of all constructors of
- inductive type ind. *)
+ * Map a function f on all constructors of inductive type ind.
+  *)
 let map_constructors f env ind =
   let m_o = lookup_mind (fst (fst ind)) env in
   let b_o = m_o.mind_packets.(0) in
@@ -26,9 +26,20 @@ let map_constructors f env ind =
     (Collections.range 1 (ncons + 1))
 
 (*
+ * Get the index that corresponds to a constructor (0-indexed)
+ *)
+let index_of_constructor c sigma =
+  try
+    snd (fst (destConstruct sigma c)) - 1
+  with _ ->
+    failwith "not a constructor"
+
+(* --- Induction Principles *)
+
+(*
  * Get the induction principles from an inductive type
  *)
-let induction_principles env trm sigma =
+let principles env trm sigma =
   let ind = fst (destInd sigma trm) in
   map_state
     (fun t sigma -> fresh_global env sigma t)

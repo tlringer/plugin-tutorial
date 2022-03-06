@@ -55,22 +55,17 @@ let get_swap_map env map sigma =
     sigma
 
 (* --- Exercise 3 --- *)
-  
-(* TODO move, clean, etc *)
-let index_of_constructor c sigma =
-  snd (fst (destConstruct sigma c))
 
  (* TODO make exercise, explain, clean *)
 let get_induction_map env map sigma =
   let sigma, swap_map = get_swap_map env map sigma in
   let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
-  let sigma, old_ips = Induction.induction_principles env old_ind sigma in
+  let sigma, old_ips = Induction.principles env old_ind sigma in
   (* TODO explain, move etc *)
   let lift_cases cases sigma =
     List.map
       (fun (c_o, c_n) ->
-        let i = index_of_constructor c_n sigma in
-        List.nth cases (i - 1))
+        List.nth cases (index_of_constructor c_n sigma))
       swap_map
   in
   (* TODO *)
@@ -94,7 +89,7 @@ let get_induction_map env map sigma =
   let lift_constructor c sigma =
     let i = index_of_constructor c sigma in
     let swap_map = Array.of_list swap_map in
-    snd (swap_map.(i - 1))
+    snd (swap_map.(i))
   in
   (* TODO *)
   let rec lift_case_typ env case_typ sigma =
@@ -144,7 +139,7 @@ let get_induction_map env map sigma =
     let new_ip_p_pms_cs_args = mkAppl (new_ip_p_pms, List.append cs args) in
     sigma, snd (reconstruct_lambda_n (nb_rel env) env_lifted new_ip_p_pms_cs_args)
   in
-  let sigma, new_ips = Induction.induction_principles env new_ind sigma in
+  let sigma, new_ips = Induction.principles env new_ind sigma in
   let sigma, lifted_ips =
     map_state
       (fun (old_ip, new_ip) sigma -> lift_induction env old_ip new_ip sigma)
