@@ -246,6 +246,10 @@ let repair_cases cases constructor_map sigma : EConstr.t list =
  * This is slightly less robust in general, but shouldn't make a difference here.
  *
  * HINT 3: My implementation was about 4-5 LOC.
+ *
+ * NOTE: This is the last thing you need to implement! After this you're
+ * done. I've commented the rest of this, though, in case you feel like
+ * looking at how things are implemented.
  *)
 let repair_constructor constr_app constructor_map sigma : EConstr.t =
   let c_args = all_args constr_app sigma in
@@ -268,6 +272,7 @@ let repair_inductive env (old_ind, new_ind) t sigma : EConstr.t =
 
 (*
  * Using that and your repair_inductive function, repair the type of the case.
+ * I've implemented this for you.
  *)
 let rec repair_case_type env inds case_type constructor_map sigma : EConstr.t =
   match kind sigma case_type with
@@ -282,57 +287,62 @@ let rec repair_case_type env inds case_type constructor_map sigma : EConstr.t =
      let repaired_constr = repair_constructor constr_app constructor_map sigma in
      reduce_term env (mkAppl (f, snoc repaired_constr args)) sigma
 
+(*
+ * Repair the type of the motive
+ *)
+let rec repair_motive_type env inds typ sigma =
+  match kind sigma typ with
+  | Constr.Prod (n, t, b) ->
+     let t' = repair_inductive env inds t sigma in
+     let env_b = push_local (n, t) env in
+     mkProd (n, t', repair_motive_type env_b inds b sigma)
+  | _ ->
+     typ
+
+(* TODO *)
+let repair_env env (old_ind, new_ind) old_ip constructor_map sigma =
+  let sigma, old_ip = expand_eta env old_ip sigma in
+  let sigma, (_, old_ip_app) = Induction.of_ip env old_ip old_ind sigma in (* TODO env *)
+  let env_pms, old_ip_pms = push_n_locals_lambda (List.length old_ip_app.pms) env old_ip sigma in
+  let (p_n, p_typ, b) = destLambda sigma old_ip_pms in
+  let env_pms_p = push_local (p_n, repair_motive_type env_pms (old_ind, new_ind) p_typ sigma) env_pms in
+  (* TODO *)
+  let rec repair env elim i sigma =
+    match kind sigma elim with
+    | Constr.Lambda (n, t, b) ->
+       if i < List.length old_ip_app.cases then
+         repair (push_local (n, repair_case_type env (old_ind, new_ind) t constructor_map sigma) env) b (i + 1) sigma
+       else
+         repair (push_local (n, repair_inductive env (old_ind, new_ind) t sigma) env) b (i + 1) sigma
+    | _ ->
+       env
+  in repair env_pms_p b 0 sigma
+
+(* TODO *)
+let repair_induction env (old_ind, new_ind) old_ip new_ip constructor_map sigma =
+  let env_repaired = repair_env env (old_ind, new_ind) old_ip constructor_map sigma in
+  let sigma, (_, new_ip_app) = Induction.of_ip env_repaired new_ip new_ind sigma in (* TODO env *)
+  let pms = new_ip_app.pms in
+  let p = new_ip_app.p in
+  let new_ip_p_pms = mkAppl (new_ip, snoc p pms) in
+  let sigma, (_, new_ip_p_pms_app) = Induction.of_ip env_repaired new_ip_p_pms new_ind sigma in (* TODO env *)
+  let cs = repair_cases new_ip_app.cases constructor_map sigma in
+  let args = new_ip_p_pms_app.final_args in
+  let new_ip_p_pms_cs_args = mkAppl (new_ip_p_pms, List.append cs args) in
+  sigma, snd (reconstruct_lambda_n (Environ.nb_rel env) env_repaired new_ip_p_pms_cs_args)
+   
  (* TODO make exercise, explain, clean *)
 let get_induction_map env map sigma : ((EConstr.t * EConstr.t) list) state =
   let sigma, constructor_map = get_constructor_map env map sigma in
-  let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
-  let sigma, old_ips = Induction.principles env old_ind sigma in
+  let sigma, inds = inductives_from_map env map sigma in
+  let sigma, old_ips = Induction.principles env (fst inds) sigma in
   (* TODO *)
-  let rec repair_motive_type typ sigma =
-    match kind sigma typ with
-    | Constr.Prod (n, t, b) ->
-       let t' = repair_inductive env (old_ind, new_ind) t sigma in
-       mkProd (n, t', repair_motive_type b sigma)
-    | _ ->
-       typ
-  in
   (* TODO explain, move, etc *)
-  let repair_env env old_ip sigma =
-    let sigma, old_ip = expand_eta env old_ip sigma in
-    let sigma, (_, old_ip_app) = Induction.of_ip env old_ip old_ind sigma in (* TODO env *)
-    let env_pms, old_ip_pms = push_n_locals_lambda (List.length old_ip_app.pms) env old_ip sigma in
-    let (p_n, p_typ, b) = destLambda sigma old_ip_pms in
-    let env_pms_p = push_local (p_n, repair_motive_type p_typ sigma) env_pms in
-    (* TODO *)
-    let rec repair env elim i sigma =
-      match kind sigma elim with
-      | Constr.Lambda (n, t, b) ->
-         if i < List.length old_ip_app.cases then
-           repair (push_local (n, repair_case_type env (old_ind, new_ind) t constructor_map sigma) env) b (i + 1) sigma
-         else
-           repair (push_local (n, repair_inductive env (old_ind, new_ind) t sigma) env) b (i + 1) sigma
-      | _ ->
-         env
-    in repair env_pms_p b 0 sigma
-  in
   (* TODO explain, move, clean, etc *)
-  let repair_induction env old_ip new_ip sigma =
-    let open Environ in
-    let env_repaired = repair_env env old_ip sigma in
-    let sigma, (_, new_ip_app) = Induction.of_ip env_repaired new_ip new_ind sigma in (* TODO env *)
-    let pms = new_ip_app.pms in
-    let p = new_ip_app.p in
-    let new_ip_p_pms = mkAppl (new_ip, snoc p pms) in
-    let sigma, (_, new_ip_p_pms_app) = Induction.of_ip env_repaired new_ip_p_pms new_ind sigma in (* TODO env *)
-    let cs = repair_cases new_ip_app.cases constructor_map sigma in
-    let args = new_ip_p_pms_app.final_args in
-    let new_ip_p_pms_cs_args = mkAppl (new_ip_p_pms, List.append cs args) in
-    sigma, snd (reconstruct_lambda_n (nb_rel env) env_repaired new_ip_p_pms_cs_args)
-  in
-  let sigma, new_ips = Induction.principles env new_ind sigma in
+  let sigma, new_ips = Induction.principles env (snd inds) sigma in
   let sigma, repaired_ips =
     map_state
-      (fun (old_ip, new_ip) sigma -> repair_induction env old_ip new_ip sigma)
+      (fun (old_ip, new_ip) sigma -> repair_induction env inds old_ip new_ip constructor_map sigma)
       (List.combine old_ips new_ips)
       sigma
   in sigma, List.combine old_ips repaired_ips
