@@ -95,7 +95,7 @@ let inductives_from_map env map sigma : (EConstr.t * EConstr.t) state =
  *
  * I've written this for you.
  *)
-let constructor_body env c sigma =
+let constructor_body env c sigma : (Environ.env * EConstr.t) state =
   let sigma, c = expand_eta env c sigma in
   let env_c_body, c_body = push_all_locals_lambda env c sigma in
   sigma, (env_c_body, mkAppl (c, mk_n_args (arity c sigma)))
@@ -111,7 +111,7 @@ let constructor_body env c sigma =
  *
  * I've written this for you.
  *)
-let get_map_args_for_constructor env c_body sigma =
+let get_map_args_for_constructor env c_body sigma : (EConstr.t list) state =
   let sigma, c_body_type = reduce_type env c_body sigma in
   let typ_args = all_args c_body_type sigma in
   sigma, snoc c_body typ_args
@@ -136,7 +136,7 @@ let get_map_args_for_constructor env c_body sigma =
  * to the mapping function, like:
  *   [T; (cons T t l)]
  * you will want to apply the mapping function map to those arguments,
- * then reduce the result and get the first function. (Or at least,
+ * then reduce or normalize the result and get the first function. (Or at least,
  * that's one way to solve this problem.)
  *
  * HINT 2: Some functions that may be useful, from termutils.mli:
@@ -146,14 +146,23 @@ let get_map_args_for_constructor env c_body sigma =
  *   apply_reduce
  *   first_fun
  *)
-let swap_constructor env map c sigma =
-  let sigma, (env, c_body) = constructor_body env c sigma in (* see above *) 
+let swap_constructor env map c sigma : EConstr.t state =
+  let sigma, (env, c_body) = constructor_body env c sigma in 
   let sigma, map_args = get_map_args_for_constructor env c_body sigma in
   let map_c = apply_reduce normalize_term env map map_args sigma in
   sigma, first_fun map_c sigma
 
-(* TODO make exercise, explain, clean *)
-let get_swap_map env map sigma =
+(*
+ * Given an environment, a mapping function, and a state, return the
+ * map of constructors between the old and new inductive type corresponding
+ * to the supplied mapping function. For example, given f : list -> New.list
+ * in Demo.v, this should return:
+ *   [(nil, New.nil), (cons, New.cons)]
+ *
+ * This is mostly implemented for you---your job is to finish implementing
+ * the swap_constructor function that this calls.
+ *)
+let get_constructor_map env map sigma =
   let sigma, (old_ind, _) = inductives_from_map env map sigma in
   Induction.map_constructors
     (fun old_c sigma ->
@@ -167,7 +176,7 @@ let get_swap_map env map sigma =
 
  (* TODO make exercise, explain, clean *)
 let get_induction_map env map sigma =
-  let sigma, swap_map = get_swap_map env map sigma in
+  let sigma, constructor_map = get_constructor_map env map sigma in
   let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
   let sigma, old_ips = Induction.principles env old_ind sigma in
   (* TODO explain, move etc *)
@@ -175,7 +184,7 @@ let get_induction_map env map sigma =
     List.map
       (fun (c_o, c_n) ->
         List.nth cases (index_of_constructor c_n sigma))
-      swap_map
+      constructor_map
   in
   (* TODO *)
   let lift_inductive t sigma =
@@ -197,7 +206,7 @@ let get_induction_map env map sigma =
   (* TODO *)
   let lift_constructor c sigma =
     let i = index_of_constructor c sigma in
-    let swap_map = Array.of_list swap_map in
+    let swap_map = Array.of_list constructor_map in
     snd (swap_map.(i))
   in
   (* TODO *)

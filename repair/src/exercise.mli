@@ -18,9 +18,16 @@ val inductives_from_map :
   (EConstr.t * EConstr.t) state (* (old_new, new_ind) *)
    
 (*
- * TODO explain etc
+ * Given an environment, a mapping function, and a state, return the
+ * map of constructors between the old and new inductive type corresponding
+ * to the supplied mapping function. For example, given f : list -> New.list
+ * in Demo.v, this should return:
+ *   [(nil, New.nil), (cons, New.cons)]
+ *
+ * This is mostly implemented for you---your job is to finish implementing
+ * the swap_constructor function that this calls.
  *)
-val get_swap_map :
+val get_constructor_map :
   env -> (* environment *)
   EConstr.t -> (* supplied map function f *)
   evar_map -> (* state *)

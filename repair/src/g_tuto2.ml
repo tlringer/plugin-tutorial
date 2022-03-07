@@ -54,7 +54,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
-     let sigma, swap_map = get_swap_map env map sigma in
+     let sigma, constructor_map = get_constructor_map env map sigma in
      Feedback.msg_notice
        (Pp.seq
           [Pp.str "This function maps: ";
@@ -65,7 +65,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
                  (fun _ -> Pp.str " -> ")
                  (fun t -> print env t sigma)
                  [c_o; c_n])
-             swap_map])
+             constructor_map])
    
                                                                  ) in fun e
                                                             ?loc ~atts ()
@@ -114,7 +114,7 @@ let () = Vernacextend.vernac_extend ~command:"Swap" ~classifier:(fun _ -> Vernac
      let sigma, map = internalize env f sigma in
      let sigma, trm = internalize env e sigma in
      let sigma, typ_map = inductives_from_map env map sigma in
-     let sigma, swap_map = get_swap_map env map sigma in
+     let sigma, constructor_map = get_constructor_map env map sigma in
      let sigma, ip_map = get_induction_map env map sigma in
      let sigma, swapped =
        fold_left_state
@@ -122,7 +122,7 @@ let () = Vernacextend.vernac_extend ~command:"Swap" ~classifier:(fun _ -> Vernac
            let sigma, subbed = sub env (src, dst) subbed sigma in
            sigma, reduce_term env subbed sigma)
          (unwrap_definition env trm sigma)
-         (List.append (typ_map :: swap_map) ip_map)
+         (List.append (typ_map :: constructor_map) ip_map)
          sigma
      in Termutils.define i swapped sigma
    
