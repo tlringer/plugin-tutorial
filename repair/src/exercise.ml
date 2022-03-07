@@ -81,25 +81,76 @@ let inductives_from_map env map sigma : (EConstr.t * EConstr.t) state =
 
 (* --- Exercise 2 --- *)
 
-(* TODO move, explain, clean *)
-let constructor_body_typ_args env_c_body c_body sigma =
-  let sigma, c_body_typ = reduce_type env_c_body c_body sigma in
-  sigma, all_args c_body_typ sigma
-
-(* TODO move, explain, clean *)
+(*
+ * Get the body of a constructor, and an environment to interpret it in.
+ *
+ * For example, if the input is cons, we can think of this as really being:
+ *   (fun (T : Type) (t : T) (l : list T) => cons T t l)
+ * So, this function returns an environment:
+ *   T : Type
+ *   t : T
+ *   l : list T
+ * and an applied constructor:
+ *   (cons T t l)
+ *
+ * I've written this for you.
+ *)
 let constructor_body env c sigma =
-  let sigma, c_typ = reduce_type env c sigma in
-  let env_c_body, c_body = push_all_locals_prod env c_typ sigma in
-  let nargs = arity c_typ sigma in
-  sigma, (env_c_body, mkAppl (c, mk_n_args nargs))
+  let sigma, c = expand_eta env c sigma in
+  let env_c_body, c_body = push_all_locals_lambda env c sigma in
+  sigma, (env_c_body, mkAppl (c, mk_n_args (arity c sigma)))
 
-(* TODO explain, clean *)
-let swap_constructor env f c sigma =
-  let sigma, (env_c_body, c_body) = constructor_body env c sigma in
-  let sigma, typ_args = constructor_body_typ_args env_c_body c_body sigma in
-  let f_args = snoc c_body typ_args in
-  let f_c = apply_reduce normalize_term env f f_args sigma in
-  sigma, first_fun f_c sigma
+(*
+ * Given a constructor body, get the right arguments to the mapping function
+ * to apply it to that constructor.
+ *
+ * For example, if the input is (cons T t l), this returns a list:
+ *   [T; cons T t l]
+ * so that we can apply the mapping function to those arguments:
+ *   f T (cons T t l)
+ *
+ * I've written this for you.
+ *)
+let get_map_args_for_constructor env c_body sigma =
+  let sigma, c_body_type = reduce_type env c_body sigma in
+  let typ_args = all_args c_body_type sigma in
+  sigma, snoc c_body typ_args
+  
+(*
+ * Given a constructor, like:
+ *   cons
+ * get the constructor that it maps to using the supplied map function, like:
+ *   New.cons
+ *
+ * I've given you a skeleton of this, and a lot of helper functions.
+ * There are many ways to solve this problem, but I find the easiest way
+ * (about 4-5 LOC total) is to apply the map function to the constructor
+ * at the right arguments, like:
+ *   f T (cons T t l)
+ * then reduce the result, producing a term like:
+ *   New.cons T t (f T l)
+ * and then get the first function:
+ *   New.cons
+ *
+ * HINT 1: The first two lines I've written for you get all of the arguments
+ * to the mapping function, like:
+ *   [T; (cons T t l)]
+ * you will want to apply the mapping function map to those arguments,
+ * then reduce the result and get the first function. (Or at least,
+ * that's one way to solve this problem.)
+ *
+ * HINT 2: Some functions that may be useful, from termutils.mli:
+ *   normalize_term
+ *   reduce_term
+ *   mkAppl
+ *   apply_reduce
+ *   first_fun
+ *)
+let swap_constructor env map c sigma =
+  let sigma, (env, c_body) = constructor_body env c sigma in (* see above *) 
+  let sigma, map_args = get_map_args_for_constructor env c_body sigma in
+  let map_c = apply_reduce normalize_term env map map_args sigma in
+  sigma, first_fun map_c sigma
 
 (* TODO make exercise, explain, clean *)
 let get_swap_map env map sigma =
