@@ -3,20 +3,26 @@ open Environ
 open Stateutils
 
 (*
- * TODO explain etc
+ * Given a map function:
+ *   map : forall ..., old_ind pms -> new_ind pms
+ * return the inductive types old_ind and new_ind.
+ *
+ * For example, if the input is f from Demo.v, with:
+ *   f : forall (T : Type), list T -> new_list T
+ * This returns (list, new_list).
  *)
 val inductives_from_map :
   env -> (* environment *)
-  EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
+  EConstr.t -> (* supplied map function f *)
   evar_map -> (* state *)
-  (EConstr.t * EConstr.t) state (* (old_new, new_ind) minus arguments *)
+  (EConstr.t * EConstr.t) state (* (old_new, new_ind) *)
    
 (*
  * TODO explain etc
  *)
 val get_swap_map :
   env -> (* environment *)
-  EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
+  EConstr.t -> (* supplied map function f *)
   evar_map -> (* state *)
   ((EConstr.t * EConstr.t) list) state (* map from old to new constructors *)
 
@@ -25,9 +31,9 @@ val get_swap_map :
  *)
 val get_induction_map :
   env -> (* environment *)
-  EConstr.t -> (* supplied map function f : old_ind -> new_ind *)
+  EConstr.t -> (* supplied map function f *)
   evar_map -> (* state *)
-  ((EConstr.t * EConstr.t) list) state (* map from old to new induction principles *)
+  ((EConstr.t * EConstr.t) list) state (* map from old to new induction *)
   
 (*
  * Substitute all occurrences of terms equal to src in trm with dst.
