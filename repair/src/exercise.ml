@@ -175,6 +175,18 @@ let get_constructor_map env map sigma : ((EConstr.t * EConstr.t) list) state =
 (* --- Exercise 3 --- *)
 
 (*
+ * NOTE: There is a lot of boilerplate needed here---I'm leaving just
+ * the two most interesting cases for you, which given the induction 
+ * principle over the old inductive type:
+ * 1. swap cases to the order of the induction principle for the new
+ *    inductive type, and
+ * 2. repair the types of those cases to refer to the new inductive type
+ *    rather than the old.
+ *
+ * The rest I will implement for you.
+ *)
+  
+(*
  * Given the cases of an inductive proof in the order that would have made
  * sense for the old inductive type, reorder those cases to the order
  * that makes sense for an inductive proof over the new inductive type.
@@ -204,11 +216,71 @@ let get_constructor_map env map sigma : ((EConstr.t * EConstr.t) list) state =
  *   https://ocaml.org/api/List.html
  * My implementation was about 3-5 lines of code.
  *)
-let swap_cases cases constructor_map sigma : EConstr.t list =
+let repair_cases cases constructor_map sigma : EConstr.t list =
   List.map
     (fun (c_o, c_n) ->
       List.nth cases (index_of_constructor c_n sigma))
     constructor_map
+
+(*
+ * Given a constructor over the old type applied to some arguments,
+ * repair it to the constructor over the new type, applied to the same arguments.
+ *
+ * This is the meat of repair_case_type, which is why I've left it to you.
+ * So, for example, given:
+ *   (cons T t l)
+ * This should return:
+ *   (New.cons T t l)
+ *
+ * HINT 1: Some functions that I found useful, from termutils.mli:
+ *   first_fun
+ *   all_args
+ *   mkAppl
+ * and from induction.mli:
+ *   index_of_constructor
+ * plus List.nth from OCaml.
+ *
+ * HINT 2: Alternatively, you can pattern match over constr_app to
+ * get the function and its arguments, and just do something in the Constr.App
+ * case, avoiding the need for first_fun, all_args, and mkAppl.
+ * This is slightly less robust in general, but shouldn't make a difference here.
+ *
+ * HINT 3: My implementation was about 4-5 LOC.
+ *)
+let repair_constructor constr_app constructor_map sigma : EConstr.t =
+  let c_args = all_args constr_app sigma in
+  let i = index_of_constructor (first_fun constr_app sigma) sigma in
+  let repaired_constr = snd (List.nth constructor_map i) in
+  mkAppl (repaired_constr, c_args)
+
+(*
+ * Lift an inductive type along the mapping function, and apply to
+ * the same arguments. If the type is not the inductive type,
+ * then do nothing. I've implemented this for you.
+ *)
+let repair_inductive env (old_ind, new_ind) t sigma : EConstr.t =
+  let args_o = is_or_applies old_ind t sigma in
+  if Option.has_some args_o then
+    let args = Option.get args_o in
+    apply_reduce reduce_term env new_ind args sigma
+  else
+    t
+
+(*
+ * Using that and your repair_inductive function, repair the type of the case.
+ *)
+let rec repair_case_type env inds case_type constructor_map sigma : EConstr.t =
+  match kind sigma case_type with
+  | Constr.Prod (n, t, b) ->
+     let t' = repair_inductive env inds t sigma in
+     let env_b = push_local (n, t) env in
+     mkProd (n, t', repair_case_type env_b inds b constructor_map sigma)
+  | _ ->
+     let f = first_fun case_type sigma in
+     let args = all_but_last (all_args case_type sigma) in
+     let constr_app = last (all_args case_type sigma) in
+     let repaired_constr = repair_constructor constr_app constructor_map sigma in
+     reduce_term env (mkAppl (f, snoc repaired_constr args)) sigma
 
  (* TODO make exercise, explain, clean *)
 let get_induction_map env map sigma : ((EConstr.t * EConstr.t) list) state =
@@ -216,83 +288,54 @@ let get_induction_map env map sigma : ((EConstr.t * EConstr.t) list) state =
   let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
   let sigma, old_ips = Induction.principles env old_ind sigma in
   (* TODO *)
-  let lift_inductive t sigma =
-    let args_o = is_or_applies old_ind t sigma in
-    if Option.has_some args_o then
-      let args = Option.get args_o in
-      apply_reduce reduce_term env new_ind args sigma
-    else
-      t
-  in
-  (* TODO *)
-  let rec lift_motive_type typ sigma =
-      match kind sigma typ with
-      | Constr.Prod (n, t, b) ->
-         mkProd (n, lift_inductive t sigma, lift_motive_type b sigma)
-      | _ ->
-         typ
-  in
-  (* TODO *)
-  let lift_constructor c sigma =
-    let i = index_of_constructor c sigma in
-    let swap_map = Array.of_list constructor_map in
-    snd (swap_map.(i))
-  in
-  (* TODO *)
-  let rec lift_case_typ env case_typ sigma =
-    match kind sigma case_typ with
+  let rec repair_motive_type typ sigma =
+    match kind sigma typ with
     | Constr.Prod (n, t, b) ->
-       let env_b = push_local (n, t) env in
-       mkProd (n, lift_inductive t sigma, lift_case_typ env_b b sigma)
+       let t' = repair_inductive env (old_ind, new_ind) t sigma in
+       mkProd (n, t', repair_motive_type b sigma)
     | _ ->
-       let f = first_fun case_typ sigma in
-       let args = all_but_last (all_args case_typ sigma) in
-       let arg = last (all_args case_typ sigma) in
-       let c_args = all_args arg sigma in
-       let lifted_constr = lift_constructor (first_fun arg sigma) sigma in
-       let arg' = reduce_term env (mkAppl (lifted_constr, c_args)) sigma in
-       reduce_term env (mkAppl (f, snoc arg' args)) sigma
+       typ
   in
   (* TODO explain, move, etc *)
-  let lift_env env old_ip sigma =
+  let repair_env env old_ip sigma =
     let sigma, old_ip = expand_eta env old_ip sigma in
     let sigma, (_, old_ip_app) = Induction.of_ip env old_ip old_ind sigma in (* TODO env *)
     let env_pms, old_ip_pms = push_n_locals_lambda (List.length old_ip_app.pms) env old_ip sigma in
     let (p_n, p_typ, b) = destLambda sigma old_ip_pms in
-    let env_pms_p = push_local (p_n, lift_motive_type p_typ sigma) env_pms in
+    let env_pms_p = push_local (p_n, repair_motive_type p_typ sigma) env_pms in
     (* TODO *)
-    let rec lift env elim i sigma =
+    let rec repair env elim i sigma =
       match kind sigma elim with
       | Constr.Lambda (n, t, b) ->
          if i < List.length old_ip_app.cases then
-           lift (push_local (n, lift_case_typ env t sigma) env) b (i + 1) sigma
+           repair (push_local (n, repair_case_type env (old_ind, new_ind) t constructor_map sigma) env) b (i + 1) sigma
          else
-           lift (push_local (n, lift_inductive t sigma) env) b (i + 1) sigma
+           repair (push_local (n, repair_inductive env (old_ind, new_ind) t sigma) env) b (i + 1) sigma
       | _ ->
          env
-    in lift env_pms_p b 0 sigma
+    in repair env_pms_p b 0 sigma
   in
   (* TODO explain, move, clean, etc *)
-  let lift_induction env old_ip new_ip sigma =
+  let repair_induction env old_ip new_ip sigma =
     let open Environ in
-    let env_lifted = lift_env env old_ip sigma in
-    let sigma, (_, new_ip_app) = Induction.of_ip env_lifted new_ip new_ind sigma in (* TODO env *)
+    let env_repaired = repair_env env old_ip sigma in
+    let sigma, (_, new_ip_app) = Induction.of_ip env_repaired new_ip new_ind sigma in (* TODO env *)
     let pms = new_ip_app.pms in
     let p = new_ip_app.p in
     let new_ip_p_pms = mkAppl (new_ip, snoc p pms) in
-    let sigma, (_, new_ip_p_pms_app) = Induction.of_ip env_lifted new_ip_p_pms new_ind sigma in (* TODO env *)
-    let cs = swap_cases new_ip_app.cases constructor_map sigma in
+    let sigma, (_, new_ip_p_pms_app) = Induction.of_ip env_repaired new_ip_p_pms new_ind sigma in (* TODO env *)
+    let cs = repair_cases new_ip_app.cases constructor_map sigma in
     let args = new_ip_p_pms_app.final_args in
     let new_ip_p_pms_cs_args = mkAppl (new_ip_p_pms, List.append cs args) in
-    sigma, snd (reconstruct_lambda_n (nb_rel env) env_lifted new_ip_p_pms_cs_args)
+    sigma, snd (reconstruct_lambda_n (nb_rel env) env_repaired new_ip_p_pms_cs_args)
   in
   let sigma, new_ips = Induction.principles env new_ind sigma in
-  let sigma, lifted_ips =
+  let sigma, repaired_ips =
     map_state
-      (fun (old_ip, new_ip) sigma -> lift_induction env old_ip new_ip sigma)
+      (fun (old_ip, new_ip) sigma -> repair_induction env old_ip new_ip sigma)
       (List.combine old_ips new_ips)
       sigma
-  in sigma, List.combine old_ips lifted_ips
+  in sigma, List.combine old_ips repaired_ips
 
 (* --- Exercise 4 --- *)
 
@@ -310,7 +353,7 @@ let get_induction_map env map sigma : ((EConstr.t * EConstr.t) list) state =
  * since those show up in many simple test cases. I'm adding a couple of other
  * cases that are common but fairly straightforward. I haven't extended
  * it to handle some other cases that have a lot of complexities involved,
- * though, like fixpoints and recursively lifted constants.
+ * though, like fixpoints and recursively repaired constants.
  *
  * NOTE: In real life, it's common to use a higher-order function to map
  * over terms, since this pattern occurs frequently. This is more supportive,
