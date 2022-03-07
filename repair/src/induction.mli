@@ -77,7 +77,7 @@ val of_ip :
 val map_constructors :
   (EConstr.t -> evar_map -> 'a state) -> (* f *)
   env -> (* environment *)
-  Names.Ind.t * EConstr.EInstance.t -> (* ind *)
+  EConstr.t -> (* ind *)
   evar_map -> (* state *)
   ('a list) state (* (map f (constructors ind)) *)
 

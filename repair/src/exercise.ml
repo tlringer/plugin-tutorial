@@ -88,10 +88,9 @@ let constructor_body_typ_args env_c_body c_body sigma =
 
 (* TODO move, explain, clean *)
 let constructor_body env c sigma =
-  let open Environ in
   let sigma, c_typ = reduce_type env c sigma in
   let env_c_body, c_body = push_all_locals_prod env c_typ sigma in
-  let nargs = nb_rel env_c_body - nb_rel env in
+  let nargs = arity c_typ sigma in
   sigma, (env_c_body, mkAppl (c, mk_n_args nargs))
 
 (* TODO explain, clean *)
@@ -110,7 +109,7 @@ let get_swap_map env map sigma =
       let sigma, new_c = swap_constructor env map old_c sigma in
       sigma, (old_c, new_c))
     env
-    (destInd sigma old_ind)
+    old_ind
     sigma
 
 (* --- Exercise 3 --- *)

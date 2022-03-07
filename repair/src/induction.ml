@@ -16,7 +16,8 @@ open Indrec
 (*
  * Map a function f on all constructors of inductive type ind.
   *)
-let map_constructors f env ind =
+let map_constructors f env trm sigma =
+  let ind = destInd sigma trm in
   let m_o = lookup_mind (fst (fst ind)) env in
   let b_o = m_o.mind_packets.(0) in
   let cs_o = b_o.mind_consnames in
@@ -24,6 +25,7 @@ let map_constructors f env ind =
   map_state
     (fun i -> f (mkConstructU ((fst ind, i), snd ind)))
     (Collections.range 1 (ncons + 1))
+    sigma
 
 (*
  * Get the index that corresponds to a constructor (0-indexed)
