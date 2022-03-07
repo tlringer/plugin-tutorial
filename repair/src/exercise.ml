@@ -329,7 +329,7 @@ let repair_env env inds old_ip constructor_map sigma =
  * Repair the induction principle.
  * I've implemented this for you, too.
  *)
-let repair_induction env inds old_ip new_ip constructor_map sigma =
+let repair_induction env inds constructor_map (old_ip, new_ip) sigma =
   let env_rep = repair_env env inds old_ip constructor_map sigma in
   let sigma, (_, proof) = Induction.of_ip env_rep new_ip (snd inds) sigma in
   let pms = proof.pms in
@@ -343,18 +343,37 @@ let repair_induction env inds old_ip new_ip constructor_map sigma =
     reconstruct_lambda_n (Environ.nb_rel env) env_rep proof_p_pms_cs_args
   in sigma, induction_rep
    
- (* TODO make exercise, explain, clean *)
+(*
+ * Map each old induction principle to an induction principle over the
+ * new inductive type, but with arguments in the same order as the old
+ * induction principle. (There are multiple induction principles per
+ * inductive type as a sort of technicality of how Coq works, but this
+ * is not really important for this exercise---it's just why there is a list
+ * instead of a single term.)
+ *
+ * For example, if the input maps:
+ *   list T -> New.list T
+ * this takes the induction principle:
+ *   list_rect :
+ *     forall (T : Type) (P : list T -> Type),
+ *       P (nil T) ->
+ *       (forall (t : T) (l : list T), P l -> P (cons T t l)) ->
+ *       forall (l : list T), P l.
+ * to the induction principle:
+ *   new_list_rect :
+ *     forall (T : Type) (P : New.list T -> Type),
+ *       P (New.nil T) ->
+ *       (forall (t : T) (l : New.list T), P l -> P (New.cons T t l)) ->
+ *       forall (l : New.list T), P l.
+ *)
 let get_induction_map env map sigma : ((EConstr.t * EConstr.t) list) state =
   let sigma, constructor_map = get_constructor_map env map sigma in
   let sigma, inds = inductives_from_map env map sigma in
   let sigma, old_ips = Induction.principles env (fst inds) sigma in
-  (* TODO *)
-  (* TODO explain, move, etc *)
-  (* TODO explain, move, clean, etc *)
   let sigma, new_ips = Induction.principles env (snd inds) sigma in
   let sigma, repaired_ips =
     map_state
-      (fun (old_ip, new_ip) sigma -> repair_induction env inds old_ip new_ip constructor_map sigma)
+      (repair_induction env inds constructor_map)
       (List.combine old_ips new_ips)
       sigma
   in sigma, List.combine old_ips repaired_ips

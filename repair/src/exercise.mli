@@ -34,7 +34,27 @@ val get_constructor_map :
   ((EConstr.t * EConstr.t) list) state (* map from old to new constructors *)
 
 (*
- * TODO explain etc
+ * Map each old induction principle to an induction principle over the
+ * new inductive type, but with arguments in the same order as the old
+ * induction principle. (There are multiple induction principles per
+ * inductive type as a sort of technicality of how Coq works, but this
+ * is not really important for this exercise---it's just why there is a list
+ * instead of a single term.)
+ *
+  * For example, if the input maps:
+ *   list T -> New.list T
+ * this takes the induction principle:
+ *   list_rect :
+ *     forall (T : Type) (P : list T -> Type),
+ *       P (nil T) ->
+ *       (forall (t : T) (l : list T), P l -> P (cons T t l)) ->
+ *       forall (l : list T), P l.
+ * to the induction principle:
+ *   new_list_rect :
+ *     forall (T : Type) (P : New.list T -> Type),
+ *       P (New.nil T) ->
+ *       (forall (t : T) (l : New.list T), P l -> P (New.cons T t l)) ->
+ *       forall (l : New.list T), P l.
  *)
 val get_induction_map :
   env -> (* environment *)
