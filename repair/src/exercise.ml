@@ -162,7 +162,7 @@ let swap_constructor env map c sigma : EConstr.t state =
  * This is mostly implemented for you---your job is to finish implementing
  * the swap_constructor function that this calls.
  *)
-let get_constructor_map env map sigma =
+let get_constructor_map env map sigma : ((EConstr.t * EConstr.t) list) state =
   let sigma, (old_ind, _) = inductives_from_map env map sigma in
   Induction.map_constructors
     (fun old_c sigma ->
@@ -174,18 +174,47 @@ let get_constructor_map env map sigma =
 
 (* --- Exercise 3 --- *)
 
+(*
+ * Given the cases of an inductive proof in the order that would have made
+ * sense for the old inductive type, reorder those cases to the order
+ * that makes sense for an inductive proof over the new inductive type.
+ * 
+ * For example, for list and New.list, proofs over New.list
+ * take the cons case first, then the nil case, whereas proofs over
+ * plain old lists took the nil case first, then the cons case.
+ * Thus, given cases:
+ *   [pnil; pcons]
+ * this function will reorder them, producing:
+ *   [pcons; pnil]
+ *
+ * HINT 1: Each constructor in Coq is associated with an index.
+ * Usually this is 1-indexed, but I think it's much easier to work with
+ * 0-indexed constructors. So we can think of New.cons as:
+ *   Constr(0, New.list)
+ * and we can think of New.nil as:
+ *   Constr(1, New.list)
+ * So, I've written a function for you, which you can find in induction.mli,
+ * that returns this index. If you pass it New.nil, you'll get back 1;
+ * if you pass it New.cons, you'll get back 0.
+ *
+ * HINT 2: You do not need to do any fancy type checking or anything like that.
+ * Rather, you should be able to get the indices from the constructor map
+ * using the function I mention above, and then use those indices to rearrange
+ * the list of cases, using functions in OCaml's list module:
+ *   https://ocaml.org/api/List.html
+ * My implementation was about 3-5 lines of code.
+ *)
+let swap_cases cases constructor_map sigma : EConstr.t list =
+  List.map
+    (fun (c_o, c_n) ->
+      List.nth cases (index_of_constructor c_n sigma))
+    constructor_map
+
  (* TODO make exercise, explain, clean *)
-let get_induction_map env map sigma =
+let get_induction_map env map sigma : ((EConstr.t * EConstr.t) list) state =
   let sigma, constructor_map = get_constructor_map env map sigma in
   let sigma, (old_ind, new_ind) = inductives_from_map env map sigma in
   let sigma, old_ips = Induction.principles env old_ind sigma in
-  (* TODO explain, move etc *)
-  let lift_cases cases sigma =
-    List.map
-      (fun (c_o, c_n) ->
-        List.nth cases (index_of_constructor c_n sigma))
-      constructor_map
-  in
   (* TODO *)
   let lift_inductive t sigma =
     let args_o = is_or_applies old_ind t sigma in
@@ -252,7 +281,7 @@ let get_induction_map env map sigma =
     let p = new_ip_app.p in
     let new_ip_p_pms = mkAppl (new_ip, snoc p pms) in
     let sigma, (_, new_ip_p_pms_app) = Induction.of_ip env_lifted new_ip_p_pms new_ind sigma in (* TODO env *)
-    let cs = lift_cases new_ip_app.cases sigma in
+    let cs = swap_cases new_ip_app.cases constructor_map sigma in
     let args = new_ip_p_pms_app.final_args in
     let new_ip_p_pms_cs_args = mkAppl (new_ip_p_pms, List.append cs args) in
     sigma, snd (reconstruct_lambda_n (nb_rel env) env_lifted new_ip_p_pms_cs_args)
