@@ -5,20 +5,79 @@ open Induction
 open Collections
 
 (* --- Exercise 1 --- *)
-   
-(* TODO make exercise, move, explain, clean *)
+
+(*
+ * Given the type of the supplied map function:
+ *   old_ind pms -> new_ind pms
+ * return the inductive types old_ind and new_ind.
+ *
+ * For example, if the input is:
+ *   forall (T : Type), list T -> new_list T
+ * This returns (list, new_list).
+ *
+ * I've given you a code skeleton; your job is to complete the code.
+ *
+ * HINTS:
+ * 1. In Coq, (A -> B) is syntax for (forall (a : A), B),
+ *    which is Constr.Prod (a, A, B) in the AST. So, our type:
+ *      forall (T : Type), list T -> new_list T
+ *    is really:
+ *      Constr.Prod (T, Type, Constr.Prod (l, list T, new_list T))
+ *
+ * 2. The syntax:
+ *      Constr.Prod (n, t, b) when isProd sigma b
+ *    means that the match case is only triggered when b is also a product.
+ *    So it would trigger on:
+ *      Constr.Prod (T, Type, Constr.Prod (l, list T, new_list T))
+ *    but it would not trigger on:
+ *      Constr.Prod (l, list T, new_list T)
+ *    Instead, the second case triggers on that.
+ *
+ * 3. We don't need to properly update the environment for this function,
+ *    since we are returning something with no local variables in the
+ *    end, like (list, new_list). I've included one for debugging purposes,
+ *    and I've added a call that you can use to debug your function.
+ *    It is commented out. You can uncomment it to print the type to debug.
+ *    If you uncomment it, though, you will need you use push_local again
+ *    to keep your environment up to date as you recurse, like you did in
+ *    the first tutorial.
+ *
+ * 4. I've written a function:
+ *      first_fun : EConstr.t -> evar_map -> EConstr.t
+ *    that gets a function from an application in a disciplined way,
+ *    dealing with some annoying Coq details about partial application.
+ *    You may find it useful. It is in termutils.mli.
+ *)
+let rec inductives_from_map_type env map_type sigma =
+  (* let _ = print_message env map_type sigma in *) (* <- uncomment to debug *) 
+  match kind sigma map_type with
+  | Constr.Prod (n, t, b) when isProd sigma b ->
+     (* forall (n : t), forall ... *)
+     let env_b = push_local (n, t) env in
+     inductives_from_map_type env_b b sigma
+  | Constr.Prod (n, t, b) ->
+     (* forall (n : t), b *)
+     (first_fun t sigma, first_fun b sigma)
+  | _ ->
+     (* print an error message *)
+     CErrors.user_err
+       (Pp.str "Map function does not have type old_ind -> new_ind")
+
+(*
+ * Given a map function:
+ *   map : old_ind pms -> new_ind pms
+ * return the inductive types old_ind and new_ind.
+ *
+ * For example, if the input is f from Demo.v, with:
+ *   f : forall (T : Type), list T -> new_list T
+ * This returns (list, new_list).
+ *
+ * I have given you the skeleton of this function.
+ * You will finish implementing inductives_from_map_type.
+ *)
 let inductives_from_map env map sigma =
-  let sigma, map_type = normalize_type env map sigma in
-  let rec get_inds env map_type sigma =
-    match kind sigma map_type with
-    | Constr.Prod (n, t, b) when isProd sigma b ->
-       get_inds (push_local (n, t) env) b sigma
-    | Constr.Prod (n, t, b) ->
-       (first_fun t sigma, first_fun b sigma)
-    | _ ->
-       CErrors.user_err
-         (Pp.str "Map function does not have type old_ind -> new_ind")
-  in sigma, get_inds env map_type sigma
+  let sigma, map_type = normalize_type env map sigma in (* get type of map *)
+  sigma, inductives_from_map_type env map_type sigma (*find (old_ind, new_ind)*)
 
 (* --- Exercise 2 --- *)
 
@@ -147,7 +206,13 @@ let get_induction_map env map sigma =
       sigma
   in sigma, List.combine old_ips lifted_ips
 
+(* --- Exercise 4 --- *)
+
 (*
+ * All code you need to implement for exercise 4 is in tuto2.mlg.
+ * This is just a reminder of how things work, and the function you can call
+ * in case you didn't get this far in the first tutorial.
+ *
  * Substitute all occurrences of terms equal to src in trm with dst.
  * Make some simplifying assumptions about the format of trm
  * (no pattern matching, no fixpoints, not lets, and so on).
