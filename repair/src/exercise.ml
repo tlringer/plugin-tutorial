@@ -48,7 +48,7 @@ open Collections
  *    dealing with some annoying Coq details about partial application.
  *    You may find it useful. It is in termutils.mli.
  *)
-let rec inductives_from_map_type env map_type sigma =
+let rec inductives_from_map_type env map_type sigma : EConstr.t * EConstr.t =
   (* let _ = print_message env map_type sigma in *) (* <- uncomment to debug *) 
   match kind sigma map_type with
   | Constr.Prod (n, t, b) when isProd sigma b ->
@@ -75,7 +75,7 @@ let rec inductives_from_map_type env map_type sigma =
  * I have given you the skeleton of this function.
  * You will finish implementing inductives_from_map_type.
  *)
-let inductives_from_map env map sigma =
+let inductives_from_map env map sigma : (EConstr.t * EConstr.t) state =
   let sigma, map_type = normalize_type env map sigma in (* get type of map *)
   sigma, inductives_from_map_type env map_type sigma (*find (old_ind, new_ind)*)
 
