@@ -329,17 +329,19 @@ let repair_env env inds old_ip constructor_map sigma =
  * Repair the induction principle.
  * I've implemented this for you, too.
  *)
-let repair_induction env (old_ind, new_ind) old_ip new_ip constructor_map sigma =
-  let env_repaired = repair_env env (old_ind, new_ind) old_ip constructor_map sigma in
-  let sigma, (_, new_ip_app) = Induction.of_ip env_repaired new_ip new_ind sigma in
-  let pms = new_ip_app.pms in
-  let p = new_ip_app.p in
-  let new_ip_p_pms = mkAppl (new_ip, snoc p pms) in
-  let sigma, (_, new_ip_p_pms_app) = Induction.of_ip env_repaired new_ip_p_pms new_ind sigma in
-  let cs = repair_cases new_ip_app.cases constructor_map sigma in
-  let args = new_ip_p_pms_app.final_args in
-  let new_ip_p_pms_cs_args = mkAppl (new_ip_p_pms, List.append cs args) in
-  sigma, snd (reconstruct_lambda_n (Environ.nb_rel env) env_repaired new_ip_p_pms_cs_args)
+let repair_induction env inds old_ip new_ip constructor_map sigma =
+  let env_rep = repair_env env inds old_ip constructor_map sigma in
+  let sigma, (_, proof) = Induction.of_ip env_rep new_ip (snd inds) sigma in
+  let pms = proof.pms in
+  let p = proof.p in
+  let proof_p_pms = mkAppl (new_ip, snoc p pms) in
+  let sigma, (_, proof) = Induction.of_ip env_rep proof_p_pms (snd inds) sigma in
+  let cases = repair_cases proof.cases constructor_map sigma in
+  let args = proof.final_args in
+  let proof_p_pms_cs_args = mkAppl (proof_p_pms, List.append cases args) in
+  let _, induction_rep =
+    reconstruct_lambda_n (Environ.nb_rel env) env_rep proof_p_pms_cs_args
+  in sigma, induction_rep
    
  (* TODO make exercise, explain, clean *)
 let get_induction_map env map sigma : ((EConstr.t * EConstr.t) list) state =
