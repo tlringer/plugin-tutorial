@@ -111,7 +111,7 @@ because you haven't implemented the commands yet :).
 
 Open [Demo.v](./theories/Demo.v) in CoqIDE, and open [g_tuto2.mlg](./src/g_tuto2.mlg)
 in Emacs alongside it. Follow the instructions in [g_tuto2.mlg](./src/g_tuto2.mlg)
-to familiarize yourself with plugin development, then implement the `Swap` command.
+to familiarize yourself with plugin development, then implement the commands.
 Have fun!
 
 
