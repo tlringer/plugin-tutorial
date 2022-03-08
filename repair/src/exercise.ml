@@ -296,7 +296,7 @@ let repair_cases env cases constructor_map sigma : EConstr.t list =
  * looking at how things are implemented.
  *)
 let repair_constructor env constr_app constructor_map sigma : EConstr.t =
-  CErrors.user_err (Pp.str "Not yet implemented")
+  CErrors.user_err (Pp.str "Not yet implemented") (* <- your code here *)
 
 (*
  * Lift an inductive type along the mapping function, and apply to
