@@ -142,7 +142,6 @@ let get_map_args_for_constructor env c_body sigma : (EConstr.t list) state =
  * HINT 2: Some functions that may be useful, from termutils.mli:
  *   normalize_term
  *   reduce_term
- *   mkAppl
  *   apply_reduce
  *   first_fun
  *)
@@ -187,17 +186,29 @@ let get_constructor_map env map sigma : ((EConstr.t * EConstr.t) list) state =
  *)
   
 (*
- * Given the cases of an inductive proof in the order that would have made
- * sense for the old inductive type, reorder those cases to the order
- * that makes sense for an inductive proof over the new inductive type.
+ * Given the cases of an inductive proof in the order that makes sense
+ * for the new inductive type, reorder those cases to the order that
+ * would have made sense for the old inductive type.
  * 
  * For example, for list and New.list, proofs over New.list
  * take the cons case first, then the nil case, whereas proofs over
  * plain old lists took the nil case first, then the cons case.
- * Thus, given cases:
- *   [pnil; pcons]
- * this function will reorder them, producing:
- *   [pcons; pnil]
+ * Thus, given cases corresponding to:
+ *   [cons; nil]
+ * this function will reorder them, producing cases corresponding to:
+ *   [nil; cons]
+ *
+ * Similarly, considering the five case enum in the test case, given
+ * cases corresponding to:
+ *   [e5'; e2'; e4'; e1'; e3']
+ * this reorders them to cases corresponding to:
+ *   [e1'; e2'; e3'; e4'; e5']
+ *
+ * This takes a bit of thought. I recommend working it out with a pencil
+ * and paper before you rush to implement it, otherwise it's easy to mess up
+ * (I did the first time). I've given you a number of hints below to help
+ * if you get stuck. The Enum case is probably the most helpful for
+ * testing this and walking through this; you can find it in Demo.v.
  *
  * HINT 1: Each constructor in Coq is associated with an index.
  * Usually this is 1-indexed, but I think it's much easier to work with
@@ -209,18 +220,52 @@ let get_constructor_map env map sigma : ((EConstr.t * EConstr.t) list) state =
  * that returns this index. If you pass it New.nil, you'll get back 1;
  * if you pass it New.cons, you'll get back 0.
  *
- * HINT 2: You do not need to do any fancy type checking or anything like that.
- * Rather, you should be able to get the indices from the constructor map
- * using the function I mention above, and then use those indices to rearrange
- * the list of cases, using functions in OCaml's list module:
- *   https://ocaml.org/api/List.html
- * My implementation was about 3-5 lines of code.
+ * HINT 2: In the body of this function, I've also written some skeleton
+ * code for you that returns a map of indices given a map of constructors.
+ * So, considering the enum above, index_map will be:
+ *   [(0, 4); (1, 1); (2, 3); (3, 0); (4, 2)]
+ * So, in the enum case, where you are given:
+ *   [e5'; e2'; e4'; e1'; e3']
+ * The corresponding indices are:
+ *   [4; 1; 3; 0; 2]
+ * And you want to reorder those cases to ones corresponding to:
+ *   [0; 1; 2; 3; 4]
+ * How do you do that? Read on to the next hint if you want more help.
+ * The list library will be useful: https://ocaml.org/api/List.html
+ *
+ * HINT 3: Reverse each tuple in the index map:
+ *   let index_map_rev = List.map (fun (i_o, i_n) -> (i_n, i_o)) index_map in ..
+ * Now you have:
+ *   [(4, 0); (1, 1); (3, 2); (0, 3); (2, 4)]
+ * then, given some case corresponding to index:
+ *   4
+ * you will want to return the case corresponding to the index:
+ *   0
+ * Where is the 0 case in the input list? It's at the offset:
+ *   List.assoc 0 index_map_rev
+ * which is equal to 3. We can get the third case with:
+ *   List.nth cases 3
+ * So, the 0th case will map to:
+ *   List.nth cases (List.assoc 0 (index_map_rev)),
+ * and so on, for each i in [0, ..., List.length cases].
+ *
+ * There are a few ways to get each i for this; one way is to use
+ * List.mapi, which maps over not just each list element, but also its
+ * index in the list.
  *)
-let repair_cases cases constructor_map sigma : EConstr.t list =
-  List.map
-    (fun (c_o, c_n) ->
-      List.nth cases (index_of_constructor c_n sigma))
-    constructor_map
+let repair_cases env cases constructor_map sigma : EConstr.t list =
+  let index_map =
+    List.map
+      (fun (c_o, c_n) ->
+        (index_of_constructor c_o sigma, index_of_constructor c_n sigma))
+      constructor_map
+  in
+  let index_map_rev = List.map (fun (i_o, i_n) -> (i_n, i_o)) index_map in
+  List.mapi
+    (fun i _ ->
+      let i_nn = List.assoc i index_map_rev in
+      List.nth cases i_nn)
+    index_map_rev
 
 (*
  * Given a constructor over the old type applied to some arguments,
@@ -235,7 +280,8 @@ let repair_cases cases constructor_map sigma : EConstr.t list =
  * HINT 1: Some functions that I found useful, from termutils.mli:
  *   first_fun
  *   all_args
- *   mkAppl
+ *   apply_reduce
+ *   reduce_term
  * and from induction.mli:
  *   index_of_constructor
  * plus List.nth from OCaml.
@@ -243,7 +289,7 @@ let repair_cases cases constructor_map sigma : EConstr.t list =
  * HINT 2: Alternatively, you can pattern match over constr_app to
  * get the function and its arguments, and just do something in the Constr.App
  * case, avoiding the need for first_fun, all_args, and mkAppl.
- * This is slightly less robust in general, but shouldn't make a difference here.
+ * This is less robust in general, but shouldn't make a difference here.
  *
  * HINT 3: My implementation was about 4-5 LOC.
  *
@@ -251,11 +297,11 @@ let repair_cases cases constructor_map sigma : EConstr.t list =
  * done. I've commented the rest of this, though, in case you feel like
  * looking at how things are implemented.
  *)
-let repair_constructor constr_app constructor_map sigma : EConstr.t =
+let repair_constructor env constr_app constructor_map sigma : EConstr.t =
   let c_args = all_args constr_app sigma in
   let i = index_of_constructor (first_fun constr_app sigma) sigma in
   let repaired_constr = snd (List.nth constructor_map i) in
-  mkAppl (repaired_constr, c_args)
+  apply_reduce reduce_term env repaired_constr c_args sigma
 
 (*
  * Lift an inductive type along the mapping function, and apply to
@@ -272,7 +318,7 @@ let repair_inductive env (old_ind, new_ind) t sigma : EConstr.t =
 
 (*
  * Using that and your repair_inductive function, repair the type of the case.
- * I've implemented this for you.
+ * I've implemented this for you, calling you repair_constructor function.
  *)
 let rec repair_case_type env inds case_type constructor_map sigma : EConstr.t =
   match kind sigma case_type with
@@ -284,8 +330,8 @@ let rec repair_case_type env inds case_type constructor_map sigma : EConstr.t =
      let f = first_fun case_type sigma in
      let args = all_but_last (all_args case_type sigma) in
      let constr_app = last (all_args case_type sigma) in
-     let repaired_constr = repair_constructor constr_app constructor_map sigma in
-     reduce_term env (mkAppl (f, snoc repaired_constr args)) sigma
+     let repaired_constr = repair_constructor env constr_app constructor_map sigma in
+     apply_reduce reduce_term env f (snoc repaired_constr args) sigma
 
 (*
  * Repair the type of the motive
@@ -336,12 +382,12 @@ let repair_induction env inds constructor_map (old_ip, new_ip) sigma =
   let p = proof.p in
   let proof_p_pms = mkAppl (new_ip, snoc p pms) in
   let sigma, (_, proof) = Induction.of_ip env_rep proof_p_pms (snd inds) sigma in
-  let cases = repair_cases proof.cases constructor_map sigma in
+  let cases = repair_cases env_rep proof.cases constructor_map sigma in
   let args = proof.final_args in
   let proof_p_pms_cs_args = mkAppl (proof_p_pms, List.append cases args) in
   let _, induction_rep =
     reconstruct_lambda_n (Environ.nb_rel env) env_rep proof_p_pms_cs_args
-  in sigma, induction_rep
+  in print_message env induction_rep sigma; sigma, induction_rep
    
 (*
  * Map each old induction principle to an induction principle over the

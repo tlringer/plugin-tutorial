@@ -73,12 +73,33 @@ VERNAC COMMAND EXTEND DisplayInductives CLASSIFIED AS SIDEFF
    }
 END
 
-(*** TODO ***)
+(*** EXERCISE 2: Repairing Constructors ***)
 
 (*
- * TODO explain, break down into smaller problems
+ * Part of our eventual repair command will map all constructors
+ * of the old datatype, like:
  *
- * TODO exercise
+ *   nil
+ *   cons
+ *
+ * to constructors of the new datatype, like:
+ *
+ *   New.nil
+ *   New.cons
+ *
+ * Ah, but there's just one problem. Our constructors are in different
+ * orders, and could have different names---the way we know how they're
+ * related is through the map function the user supplies.
+ *
+ * This command takes a map function as input, like the function f
+ * in Demo.v of type:
+ *
+ *   list -> New.list
+ *
+ * and, from that function, determines a map from the old constructors
+ * to the new constructors, here:
+ *
+ *   [(nil, Old.nil); (cons, Old.cons)]
  *)
 VERNAC COMMAND EXTEND DisplayMap CLASSIFIED AS SIDEFF
 | [ "Display" "Map" constr(e) ] ->

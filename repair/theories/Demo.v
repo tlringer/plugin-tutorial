@@ -37,8 +37,36 @@ Proof.
   - apply consH; auto.
 Defined.
 
+Inductive Enum : Set :=
+| e1 : Enum
+| e2 : Enum
+| e3 : Enum
+| e4 : Enum
+| e5 : Enum.
+
+Inductive Enum' : Set :=
+| e1' : Enum'
+| e2' : Enum'
+| e3' : Enum'
+| e4' : Enum'
+| e5' : Enum'.
+
+Program Definition Enum_Enum' : Enum -> Enum'.
+Proof.
+  intros e. induction e.
+  - apply e5'.
+  - apply e2'.
+  - apply e4'.
+  - apply e1'.
+  - apply e3'.
+Defined.
+
 Display Inductives f.
 Display Inductives g.
+Check Enum'_rect.
+Display Inductives Enum_Enum'.
+Display Map Enum_Enum'.
+Define Map new_enum := Enum_Enum'.
 
 Display Map g.
 

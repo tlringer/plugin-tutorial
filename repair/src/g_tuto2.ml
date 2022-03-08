@@ -26,7 +26,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayInductives" ~classifier:(fu
                                      Vernacextend.TyNil))), (let coqpp_body e
                                                             () = Vernacextend.VtDefault (fun () -> 
                                                                  
-# 29 "src/g_tuto2.mlg"
+# 63 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -50,7 +50,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
                                      Vernacextend.TyNil))), (let coqpp_body e
                                                             () = Vernacextend.VtDefault (fun () -> 
                                                                  
-# 51 "src/g_tuto2.mlg"
+# 106 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -81,7 +81,7 @@ let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i e
          () = Vernacextend.VtDefault (fun () -> 
-# 75 "src/g_tuto2.mlg"
+# 130 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -108,7 +108,7 @@ let () = Vernacextend.vernac_extend ~command:"Swap" ~classifier:(fun _ -> Vernac
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i f e
          () = Vernacextend.VtDefault (fun () -> 
-# 100 "src/g_tuto2.mlg"
+# 155 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env f sigma in
