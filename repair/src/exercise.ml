@@ -387,7 +387,7 @@ let repair_induction env inds constructor_map (old_ip, new_ip) sigma =
   let proof_p_pms_cs_args = mkAppl (proof_p_pms, List.append cases args) in
   let _, induction_rep =
     reconstruct_lambda_n (Environ.nb_rel env) env_rep proof_p_pms_cs_args
-  in print_message env induction_rep sigma; sigma, induction_rep
+  in sigma, induction_rep
    
 (*
  * Map each old induction principle to an induction principle over the
