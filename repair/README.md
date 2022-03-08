@@ -48,7 +48,7 @@ Proof.
 Qed.
 ```
 
-To functions and proofs about the new datatype:
+to functions and proofs about the new datatype:
 
 ```
 Swapped app_swap := f app.
