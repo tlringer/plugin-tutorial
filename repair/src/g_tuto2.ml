@@ -50,7 +50,7 @@ let () = Vernacextend.vernac_extend ~command:"DisplayMap" ~classifier:(fun _ -> 
                                      Vernacextend.TyNil))), (let coqpp_body e
                                                             () = Vernacextend.VtDefault (fun () -> 
                                                                  
-# 106 "src/g_tuto2.mlg"
+# 113 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -81,7 +81,7 @@ let () = Vernacextend.vernac_extend ~command:"DefineMap" ~classifier:(fun _ -> V
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i e
          () = Vernacextend.VtDefault (fun () -> 
-# 130 "src/g_tuto2.mlg"
+# 174 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env e sigma in
@@ -108,23 +108,25 @@ let () = Vernacextend.vernac_extend ~command:"Swap" ~classifier:(fun _ -> Vernac
                                                                     Vernacextend.TyNil))))), 
          (let coqpp_body i f e
          () = Vernacextend.VtDefault (fun () -> 
-# 155 "src/g_tuto2.mlg"
+# 230 "src/g_tuto2.mlg"
     
      let sigma, env = global_env () in
      let sigma, map = internalize env f sigma in
      let sigma, trm = internalize env e sigma in
-     let sigma, typ_map = inductives_from_map env map sigma in
-     let sigma, constructor_map = get_constructor_map env map sigma in
-     let sigma, ip_map = get_induction_map env map sigma in
+     (* call your code: *)
+     let sigma, typ_map = inductives_from_map env map sigma in (* 1 *)
+     let sigma, constructor_map = get_constructor_map env map sigma in (* 2 *)
+     let sigma, ip_map = get_induction_map env map sigma in (* 3 *)
      let sigma, swapped =
        fold_left_state
          (fun subbed (src, dst) sigma ->
+           (* substitute and reduce *)
            let sigma, subbed = sub env (src, dst) subbed sigma in
            sigma, reduce_term env subbed sigma)
-         (unwrap_definition env trm sigma)
-         (List.append (typ_map :: constructor_map) ip_map)
+         (unwrap_definition env trm sigma) (* unfold constant *)
+         (List.append (typ_map :: constructor_map) ip_map) (* combine *)
          sigma
-     in Termutils.define i swapped sigma
+     in Termutils.define i swapped sigma (* Profit! *)
    
               ) in fun i
          f e ?loc ~atts () -> coqpp_body i f e

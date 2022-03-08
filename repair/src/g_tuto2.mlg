@@ -17,7 +17,7 @@ open Stateutils
 
 }
 
-(*** EXERCISE 1: Recovering the Datatypes ***)
+(*** Step 1: Recover the Datatypes ***)
 
 (*
  * We are going to implement a proof repair tool that implements proof repair
@@ -56,7 +56,7 @@ open Stateutils
  * EXERCISE 1: Implement the function inductives_from_map_type in
  * the new exercise.ml file, to finish the implementation of
  * inductives_from_map that this command calls. When you are successful,
- * the test cases in the new Demo.v should work as expected.
+ * the relevant test cases in the new Demo.v should work as expected.
  *)
 VERNAC COMMAND EXTEND DisplayInductives CLASSIFIED AS SIDEFF
 | [ "Display" "Inductives" constr(e) ] ->
@@ -73,7 +73,7 @@ VERNAC COMMAND EXTEND DisplayInductives CLASSIFIED AS SIDEFF
    }
 END
 
-(*** EXERCISE 2: Repairing Constructors ***)
+(*** Step 2: Repair the Constructors ***)
 
 (*
  * Part of our eventual repair command will map all constructors
@@ -100,6 +100,13 @@ END
  * to the new constructors, here:
  *
  *   [(nil, Old.nil); (cons, Old.cons)]
+ *
+ * Your job is again to implement the core logic.
+ *
+ * EXERCISE 2: Implement the function swap_constructor in the new exercise.m
+ * file, to finish the implementation of get_constructor_map that this command
+ * calls. When you are successful, the relevant test cases in the new Demo.v
+ * should work as expected.
  *)
 VERNAC COMMAND EXTEND DisplayMap CLASSIFIED AS SIDEFF
 | [ "Display" "Map" constr(e) ] ->
@@ -121,10 +128,47 @@ VERNAC COMMAND EXTEND DisplayMap CLASSIFIED AS SIDEFF
    }
 END
 
-(* TODO explain, break down into smaller problems, handle constants 
-   TODO exercise
-   TODO debugging info  
-   TODO note about when this will break (like when large elim not defined) *)
+(*** Step 3: Repair Induction Principles ***)
+
+(*
+ * OK, cool! Next we need to handle induction principles. This is a bit
+ * challenging IMO, so it's OK if you don't finish it. But the basic idea
+ * is that given some induction principle like the default one for list:
+ *
+ *   list_rect :
+ *     forall (T : Type) (P : list T -> Type),
+ *       P (nil T) ->
+ *       (forall (t : T) (l : list T), P l -> P (cons T t l)) ->
+ *       forall (l : list T), P l.
+ *
+ * we will construct an induction principle for the updated type,
+ * like this one for New.list:
+ *
+ *   new_list_rect :
+ *     forall (T : Type) (P : New.list T -> Type),
+ *       P (New.nil T) ->
+ *       (forall (t : T) (l : New.list T), P l -> P (New.cons T t l)) ->
+ *       forall (l : New.list T), P l.
+ *
+ * We'll do that by using Coq's automatically generated induction principle:
+ *
+ *   New.list_rect :
+ *     forall (T : Type) (P : New.list T -> Type),
+ *       (forall (t : T) (l : New.list T), P l -> P (New.cons T t l)) ->
+ *       P (New.nil T) ->
+ *       forall (l : New.list T), P l.
+ *
+ * but swapping the nil and the cons cases.
+ *
+ * So again, this is quite tricky. I've handled most of it for you. There are
+ * two core functions you need to implement, which handle swapping cases
+ * and repairing the constructors that show up in their types, respectively.
+ *
+ * EXERCISE 3: Implement the functions repair_cases and repair_constructor 
+ * in the new exercise.ml file, to finish the implementation of
+ * get_induction_map that this command calls. When you are successful,
+ * the relevant test cases in the new Demo.v should work as expected.
+ *)
 VERNAC COMMAND EXTEND DefineMap CLASSIFIED AS SIDEFF
 | [ "Define" "Map" ident(i) ":=" constr(e) ] ->
    {
@@ -141,14 +185,45 @@ VERNAC COMMAND EXTEND DefineMap CLASSIFIED AS SIDEFF
    }
 END
 
-(*** TODO ***)
+(*** Step 4: Profit! ***)
 
 (*
- * TODO explain, break down into smaller problems
+ * OK, so here's the really cool thing. Assuming a few simplifying
+ * assumptions about our input terms (ask if interested), we've
+ * actually now done all of the interesting work to repair literally
+ * any proof about our old datatype to literally any proof about our
+ * new datatype. Same goes for functions, and we'll get something
+ * that behaves the same way.
  *
- * TODO exercise
- * TODO something weird with induction principles, whatever
- * TODO for constants, make a variant that calls swap
+ * "Why is this true?" asks the strawman student who talks to me in my head
+ * at 11PM when I prepare assignments after visit days.
+ *
+ * Good question, strawman student!
+ *
+ * When we repaired the induction principle, we actually repaired
+ * _the most general_ proof about our datatype. Now, whenever we see
+ * the old induction principle, it suffices to just _replace_ the
+ * old induction principle with the one we just defined.
+ *
+ * Better yet, we can do this without ever worrying about swapping
+ * arguments and so on, because we've already done that inside of
+ * the induction principle we just defined. All we have to do is
+ * substitute our old types, constructors, and induction principles
+ * with our new types, constructors, and induction principles,
+ * and let everything else behave the same way.
+ *
+ * "How do we do that?" asks the strawman.
+ *
+ * Ah, the strawman student in my head is quite inquisitive. Well, remember
+ * the Sub command we implemented in the tutorial last week?
+ * We can basically call the function we implemented for that,
+ * and just pass it the maps we just defined. Heck, let's do that---though
+ * I'll use a slightly extended substitution function I've defined for
+ * you, that handles a few more cases.
+ *
+ * If you've succeeded at everything else, you should be able to repair
+ * both the append function and the proof of app_nil_r in Demo.v.
+ * Fully automatically!
  *)
 VERNAC COMMAND EXTEND Swap CLASSIFIED AS SIDEFF
 | [ "Swapped" ident(i) ":=" constr(f) constr(e) ] ->
@@ -156,18 +231,20 @@ VERNAC COMMAND EXTEND Swap CLASSIFIED AS SIDEFF
      let sigma, env = global_env () in
      let sigma, map = internalize env f sigma in
      let sigma, trm = internalize env e sigma in
-     let sigma, typ_map = inductives_from_map env map sigma in
-     let sigma, constructor_map = get_constructor_map env map sigma in
-     let sigma, ip_map = get_induction_map env map sigma in
+     (* call your code: *)
+     let sigma, typ_map = inductives_from_map env map sigma in (* 1 *)
+     let sigma, constructor_map = get_constructor_map env map sigma in (* 2 *)
+     let sigma, ip_map = get_induction_map env map sigma in (* 3 *)
      let sigma, swapped =
        fold_left_state
          (fun subbed (src, dst) sigma ->
+           (* substitute and reduce *)
            let sigma, subbed = sub env (src, dst) subbed sigma in
            sigma, reduce_term env subbed sigma)
-         (unwrap_definition env trm sigma)
-         (List.append (typ_map :: constructor_map) ip_map)
+         (unwrap_definition env trm sigma) (* unfold constant *)
+         (List.append (typ_map :: constructor_map) ip_map) (* combine *)
          sigma
-     in Termutils.define i swapped sigma
+     in Termutils.define i swapped sigma (* Profit! *)
    }
 END
 

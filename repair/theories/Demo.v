@@ -82,7 +82,7 @@ Require Import List.
 Print app.
 
 (*
- * TODO test composing with the sub command
+ * TODO test composing with the sub command at each step, so students see progress
  *)
 
 Require Import Tuto1.Loader.

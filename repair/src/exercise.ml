@@ -424,12 +424,12 @@ let get_induction_map env map sigma : ((EConstr.t * EConstr.t) list) state =
       sigma
   in sigma, List.combine old_ips repaired_ips
 
-(* --- Exercise 4 --- *)
+(* --- Profit --- *)
 
 (*
- * All code you need to implement for exercise 4 is in tuto2.mlg.
- * This is just a reminder of how things work, and the function you can call
- * in case you didn't get this far in the first tutorial.
+ * I'm giving you an implementation of sub here so that you can use it
+ * in the final command in g_tuto2.mlg without needing to go back
+ * and finish the first tutorial.
  *
  * Substitute all occurrences of terms equal to src in trm with dst.
  * Make some simplifying assumptions about the format of trm
