@@ -255,23 +255,59 @@ END
  * And you need to answer _just one_ of these questions to get credit
  * (though you can answer both if you are feeling adventurous).
  *
- * TODO
+ * 1. One major challenge in proof repair is that the general problem
+ * is so intractable, that we can only define smaller classes of problems
+ * to solve and solve those---things like equivalences or, in this case,
+ * swapping and renaming constructors. You just tried to implement proof
+ * repair for one class of changes in datatypes. Based on your experiences,
+ * how tractable do you think  it would be to implement proof repair for
+ * some new class of changes in datatypes? Can you think of any way to
+ * make it easier?
+ *
+ * 2. If tasked with implementing a tool for proof repair, do you think you'd
+ * take a similar approach? Why or why not? And if not, what do you think
+ * you would try?
+ *
+ * 3. This is your second week in a row of plugin development. What did you
+ * find challenging about this experience? Is there anything that you think
+ * would make the experience of developing a plugin like this easier?
  *)
 
 (*** BONUS ***)
 
 (*
- * TODO
+ * There are a lot of ways to extend this, if you have extra time,
+ * or if you just want to learn more and do this on your own.
+ * Some ideas, not in any particular order, that came up in my thesis work:
  *
- * Error checking
+ * 1. Add error handling when the function corresponds to a class of changes
+ * that is not actually supported.
  *
- * Supporting constants
+ * 2. Add support for recursively repairing constants. Note that this
+ * is a bit tricky, though---you don't want to unfold constants that
+ * correspond to induction principles, since then you'll have to deal with
+ * general fixpoints, which are annoying (hard to reason about).
  *
- * Reverse direction lifting
+ * 3. Your command repairs proofs about your old type A to proofs
+ * about your new type B. Extend it to automatically repair proofs in the
+ * opposite direction, but without taking a new function, so you are still
+ * given just f : A -> B.
  *
- * Inverting function
+ * 4. Given f : A -> B, explicitly invert it to produce function g : B -> A.
+ * Note that these induce an equivalence between A and B.
  *
- * Proof production (section & retraction)
+ * 5. Automatically produce proofs that (forall (a : A), g (f a) = a),
+ * and similarly in the opposite direction.
  *
- * IDK what else
+ * 6. Add caching of functions and proofs you've already repaired, so that
+ * the substitution function handles those automatically. The plugin tutorials
+ * in the Coq repository show you how to deal with persistent state
+ * that you can use to define caches for repaired constants:
+ *   https://github.com/coq/coq/tree/master/doc/plugin_tutorial
+ *
+ * 7. Get back from your repaired proof term to some repaired proof
+ * script in the end. You can reference the decompiler in the PUMPKIN Pi
+ * paper if it's helpful.
+ *
+ * 8. Extend the tool to handle some new class of changes.
  *)
