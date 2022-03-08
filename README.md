@@ -1,4 +1,4 @@
-**Note: This branch is the answer guide. The main branch contains the exercises without any answers.**
+**Note: The answer guide is in another castle. By which I mean another branch. Specifically, the answer-guide branch.**
 
 This is a fun plugin tutorial for my [Proof Automation](https://dependenttyp.es/classes/598sp2022.html) class! The relevant class information is [here](https://dependenttyp.es/classes/artifacts/14-mixed.html). There is a second tutorial in the [repair directory](./repair) for a subsequent class, which builds on this. I recommend doing this tutorial first!
 
