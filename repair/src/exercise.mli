@@ -41,7 +41,7 @@ val get_constructor_map :
  * is not really important for this exercise---it's just why there is a list
  * instead of a single term.)
  *
-  * For example, if the input maps:
+ * For example, if the input maps:
  *   list T -> New.list T
  * this takes the induction principle:
  *   list_rect :

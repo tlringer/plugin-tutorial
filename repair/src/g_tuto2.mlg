@@ -17,12 +17,46 @@ open Stateutils
 
 }
 
-(*** TODO ***)
+(*** EXERCISE 1: Recovering the Datatypes ***)
 
 (*
- * TODO explain
+ * We are going to implement a proof repair tool that implements proof repair
+ * in response to changes in inductive types. We'll look in particular at
+ * changes where the new type is exactly the old type with some constructors
+ * reordered and/or renamed. So, for example, repairing proofs about:
  *
- * TODO exercise
+ *   Inductive list T :=
+ *   | nil : list T 
+ *   | cons : T -> list T -> list T.
+ *
+ * to proofs about:
+ *
+ *   Inductive New.list T :=
+ *   | New.cons : T -> New.list T -> New.list T
+ *   | New.nil : New.list T.
+ * 
+ * One thing we'll need to do is replace our old type list with New.list
+ * directly. To do that, we need to get the types list and New.list.
+ *
+ * We could, if we wanted to, take the old and new inductive types as
+ * arguments directly. But for the class of changes we'll look at,
+ * it will be enough to take a function that maps the old type to the new
+ * type, here with type:
+ *
+ *   forall (T : Type), list T -> New.list T
+ *
+ * From that, we can get the inductive types, plus a whole lot more.
+ *
+ * This command implements that. It takes a function that maps between
+ * the old and new dataypes, and from there it fetches the old and new
+ * datatypes and prints the result.
+ *
+ * Your job is to implement the core logic that makes this work.
+ *
+ * EXERCISE 1: Implement the function inductives_from_map_type in
+ * the new exercise.ml file, to finish the implementation of
+ * inductives_from_map that this command calls. When you are successful,
+ * the test cases in the new Demo.v should work as expected.
  *)
 VERNAC COMMAND EXTEND DisplayInductives CLASSIFIED AS SIDEFF
 | [ "Display" "Inductives" constr(e) ] ->
