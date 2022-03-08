@@ -1,0 +1,313 @@
+DECLARE PLUGIN "tuto2_plugin"
+
+{
+
+(*
+ * In this exercise, we will extend our Coq plugin from before!
+ * Last time, we wrote a plugin that manipulates terms from Coq
+ * and then defines new terms. This time, we'll use that same idea
+ * to implement a form of proof repair!
+ *
+ * As always, this will be discussion-based, with the usual format.
+ *)
+open Stdarg
+open Termutils
+open Exercise
+open Stateutils
+
+}
+
+(*** Step 1: Recover the Datatypes ***)
+
+(*
+ * We are going to implement a proof repair tool that implements proof repair
+ * in response to changes in inductive types. We'll look in particular at
+ * changes where the new type is exactly the old type with some constructors
+ * reordered and/or renamed. So, for example, repairing proofs about:
+ *
+ *   Inductive list T :=
+ *   | nil : list T 
+ *   | cons : T -> list T -> list T.
+ *
+ * to proofs about:
+ *
+ *   Inductive New.list T :=
+ *   | New.cons : T -> New.list T -> New.list T
+ *   | New.nil : New.list T.
+ * 
+ * One thing we'll need to do is replace our old type list with New.list
+ * directly. To do that, we need to get the types list and New.list.
+ *
+ * We could, if we wanted to, take the old and new inductive types as
+ * arguments directly. But for the class of changes we'll look at,
+ * it will be enough to take a function that maps the old type to the new
+ * type, here with type:
+ *
+ *   forall (T : Type), list T -> New.list T
+ *
+ * From that, we can get the inductive types, plus a whole lot more.
+ *
+ * This command implements that. It takes a function that maps between
+ * the old and new dataypes, and from there it fetches the old and new
+ * datatypes and prints the result.
+ *
+ * Your job is to implement the core logic that makes this work.
+ *
+ * EXERCISE 1: Implement the function inductives_from_map_type in
+ * the new exercise.ml file, to finish the implementation of
+ * inductives_from_map that this command calls. When you are successful,
+ * the relevant test cases in the new Demo.v should work as expected.
+ *)
+VERNAC COMMAND EXTEND DisplayInductives CLASSIFIED AS SIDEFF
+| [ "Display" "Inductives" constr(e) ] ->
+   {
+     let sigma, env = global_env () in
+     let sigma, map = internalize env e sigma in
+     let sigma, inds = inductives_from_map env map sigma in
+     Feedback.msg_notice
+       (Pp.seq
+          [Pp.str "This function maps: ";
+           print env (fst inds) sigma;
+           Pp.str " -> ";
+           print env (snd inds) sigma])
+   }
+END
+
+(*** Step 2: Repair the Constructors ***)
+
+(*
+ * Part of our eventual repair command will map all constructors
+ * of the old datatype, like:
+ *
+ *   nil
+ *   cons
+ *
+ * to constructors of the new datatype, like:
+ *
+ *   New.nil
+ *   New.cons
+ *
+ * Ah, but there's just one problem. Our constructors are in different
+ * orders, and could have different names---the way we know how they're
+ * related is through the map function the user supplies.
+ *
+ * This command takes a map function as input, like the function f
+ * in Demo.v of type:
+ *
+ *   list -> New.list
+ *
+ * and, from that function, determines a map from the old constructors
+ * to the new constructors, here:
+ *
+ *   [(nil, Old.nil); (cons, Old.cons)]
+ *
+ * Your job is again to implement the core logic.
+ *
+ * EXERCISE 2: Implement the function swap_constructor in the new exercise.m
+ * file, to finish the implementation of get_constructor_map that this command
+ * calls. When you are successful, the relevant test cases in the new Demo.v
+ * should work as expected.
+ *)
+VERNAC COMMAND EXTEND DisplayMap CLASSIFIED AS SIDEFF
+| [ "Display" "Map" constr(e) ] ->
+   {
+     let sigma, env = global_env () in
+     let sigma, map = internalize env e sigma in
+     let sigma, constructor_map = get_constructor_map env map sigma in
+     Feedback.msg_notice
+       (Pp.seq
+          [Pp.str "This function maps: ";
+           Pp.prlist_with_sep
+             (fun _ -> Pp.str ", ")
+             (fun (c_o, c_n) ->
+               Pp.prlist_with_sep
+                 (fun _ -> Pp.str " -> ")
+                 (fun t -> print env t sigma)
+                 [c_o; c_n])
+             constructor_map])
+   }
+END
+
+(*** Step 3: Repair Induction Principles ***)
+
+(*
+ * OK, cool! Next we need to handle induction principles. This is a bit
+ * challenging IMO, so it's OK if you don't finish it. But the basic idea
+ * is that given some induction principle like the default one for list:
+ *
+ *   list_rect :
+ *     forall (T : Type) (P : list T -> Type),
+ *       P (nil T) ->
+ *       (forall (t : T) (l : list T), P l -> P (cons T t l)) ->
+ *       forall (l : list T), P l.
+ *
+ * we will construct an induction principle for the updated type,
+ * like this one for New.list:
+ *
+ *   new_list_rect :
+ *     forall (T : Type) (P : New.list T -> Type),
+ *       P (New.nil T) ->
+ *       (forall (t : T) (l : New.list T), P l -> P (New.cons T t l)) ->
+ *       forall (l : New.list T), P l.
+ *
+ * We'll do that by using Coq's automatically generated induction principle:
+ *
+ *   New.list_rect :
+ *     forall (T : Type) (P : New.list T -> Type),
+ *       (forall (t : T) (l : New.list T), P l -> P (New.cons T t l)) ->
+ *       P (New.nil T) ->
+ *       forall (l : New.list T), P l.
+ *
+ * but swapping the nil and the cons cases.
+ *
+ * So again, this is quite tricky. I've handled most of it for you. There are
+ * two core functions you need to implement, which handle swapping cases
+ * and repairing the constructors that show up in their types, respectively.
+ *
+ * EXERCISE 3: Implement the functions repair_cases and repair_constructor 
+ * in the new exercise.ml file, to finish the implementation of
+ * get_induction_map that this command calls. When you are successful,
+ * the relevant test cases in the new Demo.v should work as expected.
+ *)
+VERNAC COMMAND EXTEND DefineMap CLASSIFIED AS SIDEFF
+| [ "Define" "Map" ident(i) ":=" constr(e) ] ->
+   {
+     let sigma, env = global_env () in
+     let sigma, map = internalize env e sigma in
+     let sigma, ip_map = get_induction_map env map sigma in
+     List.iter2
+       (fun (_, ip) suffix ->
+         let prefix = Names.Id.to_string i in
+         let id = Names.Id.of_string (String.concat "_" [prefix; suffix]) in
+         define id ip sigma)
+       ip_map
+       ["rect"; "rec"; "ind"] 
+   }
+END
+
+(*** Step 4: Profit! ***)
+
+(*
+ * OK, so here's the really cool thing. Assuming a few simplifying
+ * assumptions about our input terms (ask if interested), we've
+ * actually now done all of the interesting work to repair literally
+ * any proof about our old datatype to literally any proof about our
+ * new datatype. Same goes for functions, and we'll get something
+ * that behaves the same way.
+ *
+ * "Why is this true?" asks the strawman student who talks to me in my head
+ * at 11PM when I prepare assignments after visit days.
+ *
+ * Good question, strawman student!
+ *
+ * When we repaired the induction principle, we actually repaired
+ * _the most general_ proof about our datatype. Now, whenever we see
+ * the old induction principle, it suffices to just _replace_ the
+ * old induction principle with the one we just defined.
+ *
+ * Better yet, we can do this without ever worrying about swapping
+ * arguments and so on, because we've already done that inside of
+ * the induction principle we just defined. All we have to do is
+ * substitute our old types, constructors, and induction principles
+ * with our new types, constructors, and induction principles,
+ * and let everything else behave the same way.
+ *
+ * "How do we do that?" asks the strawman.
+ *
+ * Ah, the strawman student in my head is quite inquisitive. Well, remember
+ * the Sub command we implemented in the tutorial last week?
+ * We can basically call the function we implemented for that,
+ * and just pass it the maps we just defined. Heck, let's do that---though
+ * I'll use a slightly extended substitution function I've defined for
+ * you, that handles a few more cases.
+ *
+ * If you've succeeded at everything else, you should be able to repair
+ * both the append function and the proof of app_nil_r in Demo.v.
+ * Fully automatically!
+ *)
+VERNAC COMMAND EXTEND Swap CLASSIFIED AS SIDEFF
+| [ "Swapped" ident(i) ":=" constr(f) constr(e) ] ->
+   {
+     let sigma, env = global_env () in
+     let sigma, map = internalize env f sigma in
+     let sigma, trm = internalize env e sigma in
+     (* call your code: *)
+     let sigma, typ_map = inductives_from_map env map sigma in (* 1 *)
+     let sigma, constructor_map = get_constructor_map env map sigma in (* 2 *)
+     let sigma, ip_map = get_induction_map env map sigma in (* 3 *)
+     let sigma, swapped =
+       fold_left_state
+         (fun subbed (src, dst) sigma ->
+           (* substitute and reduce *)
+           let sigma, subbed = sub env (src, dst) subbed sigma in
+           sigma, reduce_term env subbed sigma)
+         (unwrap_definition env trm sigma) (* unfold constant *)
+         (List.append (typ_map :: constructor_map) ip_map) (* combine *)
+         sigma
+     in Termutils.define i swapped sigma (* Profit! *)
+   }
+END
+
+(*** DISCUSSION ***)
+
+(*
+ * Same format as usual---please post in the forum as a group!
+ * And you need to answer _just one_ of these questions to get credit
+ * (though you can answer both if you are feeling adventurous).
+ *
+ * 1. One major challenge in proof repair is that the general problem
+ * is so intractable, that we can only define smaller classes of problems
+ * to solve and solve those---things like equivalences or, in this case,
+ * swapping and renaming constructors. You just tried to implement proof
+ * repair for one class of changes in datatypes. Based on your experiences,
+ * how tractable do you think  it would be to implement proof repair for
+ * some new class of changes in datatypes? Can you think of any way to
+ * make it easier?
+ *
+ * 2. If tasked with implementing a tool for proof repair, do you think you'd
+ * take a similar approach? Why or why not? And if not, what do you think
+ * you would try?
+ *
+ * 3. This is your second week in a row of plugin development. What did you
+ * find challenging about this experience? Is there anything that you think
+ * would make the experience of developing a plugin like this easier?
+ *)
+
+(*** BONUS ***)
+
+(*
+ * There are a lot of ways to extend this, if you have extra time,
+ * or if you just want to learn more and do this on your own.
+ * Some ideas, not in any particular order, that came up in my thesis work:
+ *
+ * 1. Add error handling when the function corresponds to a class of changes
+ * that is not actually supported.
+ *
+ * 2. Add support for recursively repairing constants. Note that this
+ * is a bit tricky, though---you don't want to unfold constants that
+ * correspond to induction principles, since then you'll have to deal with
+ * general fixpoints, which are annoying (hard to reason about).
+ *
+ * 3. Your command repairs proofs about your old type A to proofs
+ * about your new type B. Extend it to automatically repair proofs in the
+ * opposite direction, but without taking a new function, so you are still
+ * given just f : A -> B.
+ *
+ * 4. Given f : A -> B, explicitly invert it to produce function g : B -> A.
+ * Note that these induce an equivalence between A and B.
+ *
+ * 5. Automatically produce proofs that (forall (a : A), g (f a) = a),
+ * and similarly in the opposite direction.
+ *
+ * 6. Add caching of functions and proofs you've already repaired, so that
+ * the substitution function handles those automatically. The plugin tutorials
+ * in the Coq repository show you how to deal with persistent state
+ * that you can use to define caches for repaired constants:
+ *   https://github.com/coq/coq/tree/master/doc/plugin_tutorial
+ *
+ * 7. Get back from your repaired proof term to some repaired proof
+ * script in the end. You can reference the decompiler in the PUMPKIN Pi
+ * paper if it's helpful.
+ *
+ * 8. Extend the tool to handle some new class of changes.
+ *)

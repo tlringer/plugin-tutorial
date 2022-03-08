@@ -13,18 +13,22 @@ open Termutils
 let rec count env src trm sigma =
   let sigma, is_eq = equal env src trm sigma in
   if is_eq then
+    (* when src is equal to trm, up the count *)
     sigma, 1
   else
     match kind sigma trm with
-    | Constr.Lambda (n, t, b) -> (* fun (n : t) => b *)
+    | Constr.Lambda (n, t, b) ->
+       (* count (fun (n : t) => b) := count t + count b *)
        let sigma, count_t = count env src t sigma in
        let sigma, count_b = count (push_local (n, t) env) src b sigma in
        sigma, count_t + count_b
-    | Constr.Prod (n, t, b) -> (* forall (n : t), b *)
+    | Constr.Prod (n, t, b) ->
+       (* count (forall (n : t), b := count t + count b *)
        let sigma, count_t = count env src t sigma in
        let sigma, count_b = count (push_local (n, t) env) src b sigma in
        sigma, count_t + count_b
-    | Constr.App (f, args) -> (* f args *)
+    | Constr.App (f, args) ->
+       (* count (f args) := count f + sum (count args) *)
        let sigma, count_f = count env src f sigma in
        let sigma, count_args =
          map_state_array
@@ -33,6 +37,7 @@ let rec count env src trm sigma =
            sigma
        in sigma, Array.fold_left (fun b a -> b + a) count_f count_args
     | _ ->
+       (* otherwise, no occurrences *)
        sigma, 0
 
 (*
@@ -48,10 +53,11 @@ let rec count env src trm sigma =
  * instead of a number. The function will have almost exactly the same
  * structure.
  *)
-let sub env (src, dst) trm sigma = (*<- you'll need to add "rec" before "sub"*)
+let rec sub env (src, dst) trm sigma =
   let sigma, is_eq = equal env src trm sigma in
   if is_eq then
-    sigma, trm (* <- your implementation here *)
+    (* when src is equal to trm, return dst *)
+    sigma, dst
   else
     match kind sigma trm with
     | Constr.Lambda (n, t, b) -> (* fun (n : t) => b *)
@@ -61,4 +67,5 @@ let sub env (src, dst) trm sigma = (*<- you'll need to add "rec" before "sub"*)
     | Constr.App (f, args) -> (* f args *)
        sigma, trm (* <- your implementation here *)
     | _ ->
+       (* otherwise, return trm *)
        sigma, trm

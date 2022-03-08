@@ -1,4 +1,6 @@
-This is a fun plugin tutorial for my [Proof Automation](https://dependenttyp.es/classes/598sp2022.html) class! The relevant class information is [here](https://dependenttyp.es/classes/artifacts/14-mixed.html).
+**Note: This branch is the answer guide. The main branch contains the exercises without any answers.**
+
+This is a fun plugin tutorial for my [Proof Automation](https://dependenttyp.es/classes/598sp2022.html) class! The relevant class information is [here](https://dependenttyp.es/classes/artifacts/14-mixed.html). There is a second tutorial in the [repair directory](./repair) for a subsequent class, which builds on this. I recommend doing this tutorial first!
 
 This tutorial helps familiarize people with plugin development. The goal
 is to implement a command with this syntax:
