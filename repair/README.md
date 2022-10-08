@@ -5,7 +5,7 @@ More coming soon!
 ## Prerequisites
 
 If you are not in my Proof Automation class, please first set up
-Coq 8.14 and CoqIDE according to [these instructions](https://dependenttyp.es/classes/artifacts/6-languages.html). Please also set up emacs, and set up the plugin in the [parent directory](../) according to instructions in the corresponding [README](../README.md).
+Coq 8.16 and CoqIDE according to [these instructions](https://dependenttyp.es/classes/artifacts/6-languages.html). Please also set up emacs, and set up the plugin in the [parent directory](../) according to instructions in the corresponding [README](../README.md).
 
 If you are in my Proof Automation class, you have already done this :).
 
