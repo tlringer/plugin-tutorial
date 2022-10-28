@@ -53,7 +53,7 @@ let rec count env src trm sigma =
  * instead of a number. The function will have almost exactly the same
  * structure.
  *)
-let rec sub env (src, dst) trm sigma =
+let (*rec*) sub env (src, dst) trm sigma = (* uncomment rec when implementing *)
   let sigma, is_eq = equal env src trm sigma in
   if is_eq then
     (* when src is equal to trm, return dst *)
