@@ -1,4 +1,4 @@
-DECLARE PLUGIN "tuto1_plugin"
+DECLARE PLUGIN "tuto1.plugin"
 
 {
 
@@ -60,13 +60,13 @@ END
  *
  * EXERCISE 3: Look at the implementation of count in exercise.ml.
  * Look also at the definition of the abstract syntax tree (AST) in the Coq kernel:
- * https://github.com/coq/coq/blob/v8.14/kernel/constr.mli#L237
+ * https://github.com/coq/coq/blob/v8.16/kernel/constr.mli#L237
  * What is each case of the implementation of count in exercise.ml doing?
  * Add comments explaining each case.
  *
  * EXERCISE 4: Look again at the implementation of count in exercise.ml.
  * Look again also at the definition of the AST in the Coq kernel:
- * https://github.com/coq/coq/blob/v8.14/kernel/constr.mli#L237
+ * https://github.com/coq/coq/blob/v8.16/kernel/constr.mli#L237
  * Are there any cases that are not handled well right now?
  * (It's OK if you do not know what some of the cases are---though feel free
  * to ask. This is to get you thinking about the Coq AST, mostly.)

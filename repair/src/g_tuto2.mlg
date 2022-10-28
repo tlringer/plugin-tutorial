@@ -1,4 +1,4 @@
-DECLARE PLUGIN "tuto2_plugin"
+DECLARE PLUGIN "tuto2.plugin"
 
 {
 
