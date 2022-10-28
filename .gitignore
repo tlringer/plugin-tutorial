@@ -14,4 +14,4 @@
 *.cmxa
 Makefile.coq
 Makefile.coq.conf
-src/g_tuto*.ml
+**/src/g_tuto*.ml
