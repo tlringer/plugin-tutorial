@@ -1,4 +1,4 @@
-`package "plugin" (
+package "plugin" (
   directory = "."
   requires = ""
   archive(byte) = "tuto1_plugin.cma"
