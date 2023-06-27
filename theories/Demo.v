@@ -26,8 +26,8 @@ Print foo.
  * inside of the second term. This makes some
  * simplifying assumptions about the format of terms.
  *)
-Count nat in (foo nat). (* 1 *)
-Count nat in (fun (n : nat) => n). (* 1 *)
+Count2 nat in (foo nat). (* 1 *)
+Count2 nat in (fun (n : nat) => n). (* 1 *)
 
 (*
  * Since it's definitional equality, we don't need
@@ -35,7 +35,7 @@ Count nat in (fun (n : nat) => n). (* 1 *)
  * wrapping nat, for example, and get the same behavior:
  *)
 Definition my_nat := nat.
-Count my_nat in (foo nat). (* 1 *)
+Count2 my_nat in (foo nat). (* 1 *)
 
 (*
  * Similarly, since 8 is sugar for S (S (S ... 0)), 
@@ -43,8 +43,8 @@ Count my_nat in (foo nat). (* 1 *)
  * Or, we can pass in (fun (n : nat) => 1 + n),
  * which is definitionally equal to S.
  *)
-Count S in (8). (* 8 *)
-Count (fun (n : nat) => 1 + n) in (8). (* 8 *)
+Count2 S in (8). (* 8 *)
+Count2 (fun (n : nat) => 1 + n) in (8). (* 8 *)
 
 (*** Both together ***)
 

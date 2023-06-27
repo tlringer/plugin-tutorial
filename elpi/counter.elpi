@@ -1,0 +1,35 @@
+namespace counter {
+
+pred init o:any.
+init Cnt :-
+  declare_constraint (internal.counter Cnt 0) [_].
+
+pred incr i:any.
+incr Cnt :-
+  declare_constraint (internal.incr Cnt) [_].
+
+pred get i:any, o:int.
+get Cnt I :-
+  declare_constraint (internal.get Cnt I) [_].
+
+namespace internal {
+
+% constraints
+pred counter o:any, o:int.
+pred incr o:any.
+pred get o:any, o:int.
+
+constraint counter incr get {
+  rule \ (counter Cnt I) (incr Cnt) <=> (
+    I1 is I + 1,
+    declare_constraint (counter Cnt I1) [_]
+  ).
+  rule \ (incr Cnt) <=> (coq.error "counter not found").
+
+  rule (counter Cnt I) \ (get Cnt I') <=> (I' = I).
+  rule \ (get Cnt I') <=> (coq.error "counter not found").
+}
+
+} % internal
+
+} % counter

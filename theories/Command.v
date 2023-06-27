@@ -2,6 +2,7 @@ From elpi Require Import elpi.
 
 From Tuto1.Elpi Extra Dependency "common.elpi" as common.
 From Tuto1.Elpi Extra Dependency "sub.elpi" as sub.
+From Tuto1.Elpi Extra Dependency "counter.elpi" as counter.
 
 Elpi Command My.
 Elpi Accumulate lp:{{
@@ -46,6 +47,30 @@ Elpi Accumulate lp:{{
 }}.
 Elpi Typecheck.
 Elpi Export Count.
+
+Elpi Command Count2.
+Elpi Accumulate File common.
+Elpi Accumulate File counter.
+Elpi Accumulate lp:{{
+  main [AX, str "in", AT] :-
+    parse-term AX X,
+    parse-term AT T,
+    counter.init Cnt,
+    (copy X X :- counter.incr Cnt) => copy T _,
+    counter.get Cnt I,
+    coq.say I.
+  
+  main _ :- coq.error {std.string.concat "\n" ["command syntax error", {usage-msg}]}.
+
+  pred usage-msg o:string.
+  usage-msg U :-
+    std.string.concat "\n" [
+      "usage: Count2 <x> in <t>.",
+      "", "",
+    ] U.
+}}.
+Elpi Typecheck.
+Elpi Export Count2.
 
 Elpi Command Sub.
 Elpi Accumulate File common.
