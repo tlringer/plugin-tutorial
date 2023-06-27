@@ -6,17 +6,17 @@ From Tuto1 Require Import Loader.
  * MyDefine works a lot like Definition.
  * Some examples:
  *)
-(* MyDefine n := 1.
+My Definition n := 1.
 Print n.
 
-MyDefine f := (fun (x : Type) => x).
+My Definition f := (fun (x : Type) => x).
 Print f.
 
-MyDefine definition := 5.
+My Definition definition := 5.
 Print definition.
 
-MyDefine foo := (fun (T : Type) => forall (P : T -> Type) (t : T), P t).
-Print foo. *)
+My Definition foo := (fun (T : Type) => forall (P : T -> Type) (t : T), P t).
+Print foo.
 
 (*** Reasoning about terms ***)
 
@@ -26,16 +26,16 @@ Print foo. *)
  * inside of the second term. This makes some
  * simplifying assumptions about the format of terms.
  *)
-(* Count nat in (foo nat). (* 1 *)
-Count nat in (fun (n : nat) => n). (* 1 *) *)
+Count nat in (foo nat). (* 1 *)
+Count nat in (fun (n : nat) => n). (* 1 *)
 
 (*
  * Since it's definitional equality, we don't need
  * to rely on syntax. We can define our own constant
  * wrapping nat, for example, and get the same behavior:
  *)
-(* Definition my_nat := nat.
-Count my_nat in (foo nat). (* 1 *) *)
+Definition my_nat := nat.
+Count my_nat in (foo nat). (* 1 *)
 
 (*
  * Similarly, since 8 is sugar for S (S (S ... 0)), 
@@ -43,8 +43,8 @@ Count my_nat in (foo nat). (* 1 *) *)
  * Or, we can pass in (fun (n : nat) => 1 + n),
  * which is definitionally equal to S.
  *)
-(* Count S in 8. (* 8 *)
-Count (fun (n : nat) => 1 + n) in 8. (* 8 *) *)
+Count S in (8). (* 8 *)
+Count (fun (n : nat) => 1 + n) in (8). (* 8 *)
 
 (*** Both together ***)
 
@@ -95,5 +95,3 @@ Lemma test3:
 Proof.
   reflexivity.
 Qed.
-
-
