@@ -1,1 +1,1 @@
-Declare ML Module "tuto1.plugin".
+From Tuto1 Require Export Command.

@@ -1,0 +1,31 @@
+% arguments parsing
+
+pred parse-arguments i:list argument, o:list term, o:list term, o:term, o:string.
+parse-arguments Args Ts Ts' PX Name :-
+  parse-terms Args Ts [str "with"|Args'],
+  parse-terms Args' Ts' [str "in", X, str "as", str Name],
+  parse-term X PX,
+  std.assert! (not (Name = "")) "non-empty name required".
+
+% eat a list of terms from the argument list
+pred parse-terms i:list argument, o:list term, o:list argument.
+parse-terms [T|Args] [PT|Ts] Args' :-
+  parse-term T PT, !,
+  parse-terms Args Ts Args'.
+parse-terms Args [] Args.
+
+pred parse-term i:argument, o:term.
+parse-term (str S) _ :- (S = "with" ; S = "in"), !, fail.
+parse-term (str S) (global GR) :-
+  coq.locate S GR, !.
+parse-term (trm T) T.
+
+% problem solving
+
+% for each T in the input terms, replace T with T' in X
+% just a fold based on the copy predicate
+pred copy-all i:list term, i:list term, i:term, o:term.
+  copy-all [] [] X X.
+  copy-all [T|Ts] [T'|Ts'] X X' :-
+    copy T T' => copy X X1,
+    copy-all Ts Ts' X1 X'.

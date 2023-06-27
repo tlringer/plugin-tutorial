@@ -1,13 +1,6 @@
-src/META.tuto1
 -R theories Tuto1
--I src
+-R elpi Tuto1.Elpi
 
+theories/Command.v
 theories/Loader.v
 theories/Demo.v
-
-src/termutils.mli
-src/termutils.ml
-src/exercise.mli
-src/exercise.ml
-src/g_tuto1.mlg
-src/tuto1_plugin.mlpack
