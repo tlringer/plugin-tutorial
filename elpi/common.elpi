@@ -1,0 +1,13 @@
+% arguments parsing
+
+% eat a list of terms from the argument list
+pred parse-terms i:list argument, o:list term, o:list argument.
+parse-terms [T|Args] [PT|Ts] Args' :-
+  parse-term T PT, !,
+  parse-terms Args Ts Args'.
+parse-terms Args [] Args.
+
+pred parse-term i:argument, o:term.
+parse-term (str S) (global GR) :-
+  coq.locate S GR, !.
+parse-term (trm T) T.

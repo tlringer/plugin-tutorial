@@ -1,0 +1,7 @@
+% for each T in the input terms, replace T with T' in X
+% just a fold based on the copy predicate
+pred copy-all i:list term, i:list term, i:term, o:term.
+  copy-all [] [] X X.
+  copy-all [T|Ts] [T'|Ts'] X X' :-
+    copy T T' => copy X X1,
+    copy-all Ts Ts' X1 X'.
